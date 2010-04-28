@@ -1,0 +1,3 @@
+[submodule "luabind"]
+	path = luabind
+	url = http://github.com/luabind/luabind.git

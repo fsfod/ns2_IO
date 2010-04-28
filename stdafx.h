@@ -7,6 +7,7 @@
 
 #include "targetver.h"
 
+
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
@@ -16,3 +17,13 @@ extern "C" {
 }
 #include <string>
 #include <vector>
+#include <cstdint>
+
+#if defined(UNICODE)
+	#define UnicodePathString
+	typedef	std::wstring PathString;
+#else
+	typedef	std::string PathString;
+#endif
+
+typedef PathString::value_type PathChar;
