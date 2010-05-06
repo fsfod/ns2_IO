@@ -4,14 +4,15 @@
 #include "NS_IOModule.h"
 #include "StringUtil.h"
 #include <algorithm>
-
+#include "PathStringConverter.h"
 using namespace  std;
 
 //LuaModule::LuaModule(){
-PathString LuaModule::NSRoot = PathString(0);
-PathString LuaModule::GameString = PathString(0);
-std::vector<NSRootDir> LuaModule::RootDirs = std::vector<NSRootDir>(0);
+PathString LuaModule::NSRoot(_T(""));
+PathString LuaModule::GameString(_T(""));;
+std::vector<NSRootDir> LuaModule::RootDirs(0);
 //{
+
 
 bool LuaModule::FindNSRoot(){
 	HMODULE hmodule = GetModuleHandleA("ns2.exe");
@@ -43,7 +44,10 @@ bool LuaModule::FindNSRoot(){
 
 void LuaModule::ParseGameCommandline(PathString& CommandLine){
 
-	if(CommandLine.length() > 2  && CommandLine[0] == ' ' || CommandLine[0] == '=' ){
+	if(CommandLine.length() < 2  || CommandLine[0] != ' ' || CommandLine[0] == '=' ){
+		throw LuaErrorWrapper("failed to parse game command line argument(find arg start)");
+	}
+
 		auto it = CommandLine.begin();
 
 		bool HasQuotedString = false, Found = false;
@@ -111,21 +115,21 @@ void LuaModule::ParseGameCommandline(PathString& CommandLine){
 
 			RootDirs.push_back(NSRootDir(GameStringPath, DirName.c_str()));
 		}
+
 		RootDirs.push_back(NSRootDir(NSRoot, "core"));
 		RootDirs.push_back(NSRootDir(NSRoot, "n2"));
-	}else{
-		throw LuaErrorWrapper("failed to parse game command line argument(formating1)");
-	}
 }
+
+
 
 void LuaModule::FindDirectoryRoots(){
 
-	wchar_t* arg_postion = wcsstr(GetCommandLine(), L"/game");
 	PathString CommandLine(GetCommandLine());
 
+	int arg_postion = CommandLine.find(_T("//game"));
 
-	if(arg_postion != NULL){
-		PathString CommandLine(arg_postion+5);
+	if(arg_postion != -1){
+		PathString CommandLine = CommandLine.substr(arg_postion);
 
 		ParseGameCommandline(CommandLine);
 	}else{
@@ -134,232 +138,116 @@ void LuaModule::FindDirectoryRoots(){
 	}
 }
 
-void LuaModule::ConvertAndValidatePath(lua_State *L, int ArgumentIndex, PathString& path){
-	size_t StringSize = 0;
-	const char* string = luaL_checklstring (L, ArgumentIndex, &StringSize);
 
-	if(string == NULL){
-		throw LuaErrorWrapper("Missing string argument TODO");
+bool LuaModule::FileExists(const PathStringArg& path) {
+
+	bool FileFound = false;
+
+	for(int i = 0; i < 2 ; i++){
+		if(RootDirs[i].FileExists(path)) return true;
 	}
 
-	if(string[0] == '/' || string[0] == '\\'){
-		string = string+ 1;
-	}
-
-#if defined(UnicodePathString)
-	int result = UTF8ToWString(string, path);
-#else
-	path.assign(string);
-#endif
-
-	if(path.find(L"..") != -1){
-		throw LuaErrorWrapper("The Path cannot contain the directory up string \"..\"");
-	}
+	return false;
 }
 
-int LuaModule::FileExists(lua_State *L) {
+uint32_t LuaModule::GetFileSize(const PathStringArg& path) {
 
-	try{
-		PathString path;
-		ConvertAndValidatePath(L, 1, path);
+	bool FileFound = false;
+	uint32_t FileSize = 0;
 
+	for(auto it = RootDirs.begin(); it < RootDirs.end() ; it++){
+		if(it->FileSize(path, FileSize)){
+			return FileSize;
+		}
+	}
+
+	throw exception("cannot get the size of a file that does not exist");
+}
+
+int LuaModule::GetDateModifed(const PathStringArg& path){
 
 		bool FileFound = false;
+		uint32_t ModifedTime = 0;
 
-		for(int i = 0; i < 2 ; i++){
-			FileFound = RootDirs[i].FileExists(path);
-			if(FileFound) break;
+		for(auto it = RootDirs.begin(); it < RootDirs.end() ; it++){
+			if(it->GetModifedTime(path, ModifedTime)){
+				return ModifedTime;
+			}
 		}
 
-		lua_pushboolean(L, FileFound);
-
-		return 1;
-	}catch(LuaErrorWrapper e){
-		lua_pushstring(L, e.what());
-		return 0;
-	}
+	throw exception("cannot get the size of a file that does not exist");
 }
 
-int LuaModule::GetFileSize(lua_State *L) {
-
-	try{
-		PathString path;
-		ConvertAndValidatePath(L, 1, path);
-
-		bool FileFound = false;
-		uint32_t FileSize = 0;
-
-		for(int i = 0; i < 2 ; i++){
-			FileFound = RootDirs[i].FileSize(path, FileSize);
-			if(FileFound) break;
-		}
-
-		if(FileFound){
-			lua_pushnumber(L, FileSize);
-		}else{
-			lua_pushstring(L, "cannot get the size of a file that does not exist");
-			lua_error(L);
-
-		 return 0;
-		}
-
-		return 1;
-	}catch(LuaErrorWrapper e){
-		lua_pushstring(L, e.what());
-		return 0;
-	}
-}
-
-int LuaModule::GetDateModifed(lua_State* L){
-	try{
-		PathString path;
-		ConvertAndValidatePath(L, 1, path);
-
-		bool FileFound = false;
-		uint64_t ModifedTime = 0;
-
-		for(int i = 0; i < 2 ; i++){
-			FileFound = RootDirs[i].GetModifedTime(path, ModifedTime);
-			if(FileFound) break;
-		}
-
-		if(FileFound){
-			lua_pushnumber(L, FileSize);
-		}else{
-			lua_pushstring(L, "cannot get the size of a file that does not exist");
-			lua_error(L);
-
-			return 0;
-		}
-
-		return 1;
-	}catch(LuaErrorWrapper e){
-		lua_pushstring(L, e.what());
-		return 0;
-	}
-}
-}
-
-int LuaModule::FindFilesInDir(lua_State *L) {
-	PathString SearchString;
-	ConvertAndValidatePath(L, 1, SearchString);
+luabind::object LuaModule::FindFiles(lua_State* L, const PathStringArg& SearchString) {
 
 	FileSearchResult Results;
 
-	for(int i = 0; i < RootDirs.size() ; i++){
-		int count = RootDirs[i].FindFiles(SearchString, Results);
-	}
+	for_each(RootDirs.begin(), RootDirs.end(),
+		[&](NSRootDir& dir){
+			dir.FindFiles(SearchString, Results);
+		}
+	);
 
 	lua_createtable(L, Results.size(), 0);
-	int Table = lua_gettop(L);
+	luabind::object table = luabind::object(luabind::from_stack(L,-1));
 
 	auto it = Results.begin();
 
-	for(int i = 0; i < Results.size() ; i++,it++){
-		lua_pushstring(L, it->first.c_str());
-		lua_rawseti(L, Table, i+1);
+	for(uint32_t i = 0; i < Results.size() ; i++,it++){
+		table[i+1] =  it->first;
 	}
 
-	return 1;
+	return table;
 }
 
-int LuaModule::FindDirectorys(lua_State *L) {
-	PathString SearchString;
-	
-	ConvertAndValidatePath(L, 1, SearchString);
+luabind::object LuaModule::FindDirectorys(lua_State *L, const PathStringArg& SearchString) {
 
 	FileSearchResult Results;
 
-	for(unsigned int i = 0; i < RootDirs.size() ; i++){
-		int count = RootDirs[i].FindDirectorys(SearchString, Results);
-	}
+	for_each(RootDirs.begin(), RootDirs.end(),
+		[&](NSRootDir& dir){
+			dir.FindDirectorys(SearchString, Results);
+		}
+	);
 
 	lua_createtable(L, Results.size(), 0);
-	int Table = lua_gettop(L);
+	luabind::object table = luabind::object(luabind::from_stack(L,-1));
 
 	auto it = Results.begin();
 
-	for(unsigned int i = 0; i < Results.size() ; i++,it++){
-		lua_pushstring(L, it->first.c_str());
-		lua_rawseti(L, Table, i+1);
+	for(uint32_t i = 0; i < Results.size() ; i++,it++){
+		table[i+1] =  it->first.c_str();
 	}
 
-	return 1;
+	return table;
 }
 
-int LuaModule::GetDirRootList(lua_State *L) {
+luabind::object LuaModule::GetDirRootList(lua_State *L) {
 
 	lua_createtable(L, RootDirs.size(), 0);
-	int Table = lua_gettop(L);
-	string Apath;
+	luabind::object table = luabind::object(luabind::from_stack(L,-1));
 
-	for(unsigned int i = 0; i < RootDirs.size() ; i++){
+	auto it = RootDirs.begin();
 
+	for(uint32_t i = 0; i < RootDirs.size() ; i++,it++){
 #ifdef UnicodePathString
-		UTF16ToUTF8STLString(RootDirs[i].GetPath().c_str(), Apath);
-		lua_pushstring(L, Apath.c_str());
+		//string Apath;
+		//UTF16ToUTF8STLString(RootDirs[i].GetPath().c_str(), Apath);
+		table[i+1] = static_cast<PathStringArg&>(RootDirs[i].GetPath());
 #else
-		lua_pushstring(L, RootDirs[i].GetPath().c_str());
+		const string& temp = (*it).GetPath();
+		table[i+1] =  temp;
 #endif
-
-		lua_rawseti(L, Table, i+1);
 	}
 
-	return 1;
+	return table;
 }
 
-int LuaModule::GetGameString(lua_State *L) {
-	string AGameString;
-	
-	if(GameString.empty()){
-		lua_pushstring(L, "");
-	}else{
-		UTF16ToUTF8STLString(GameString.c_str(), AGameString);
-		lua_pushstring(L, AGameString.c_str());
-	}
-
-	return 1;
+const PathStringArg& LuaModule::GetGameString() {
+	return static_cast<PathStringArg&>(GameString);
 }
 
-/*
-		if (luaL_loadfile(L, fullPath.c_str()) == 0)
-		{
-			//Set the chunk's environment to a table
-			lua_newtable(L);
-			lua_pushvalue(L, -1);
-			if (!lua_setfenv(L, -3))
-			{
-				assert(false && "Chunk must be loaded");
-			}
-			//Push the chunk to the top, required by pcall
-			lua_pushvalue(L, -2);
-			//Remove the old chunk
-			lua_remove(L, -3);
-			//Call the chunk, it then inserts any globals into the environment table
-			if (lua_pcall(L, 0, 0, 0) == 0)
-			{
-				TOCInfo::StringCollection& savedVars = info.SavedVariables;
-				for (TOCInfo::StringCollection::const_iterator it = savedVars.begin(), end = savedVars.end(); it != end; ++it)
-				{
-					lua_getfield(L, -1, it->c_str());
-					if (lua_isnil(L, -1))
-					{
-						//Pop nil
-						lua_pop(L, 1);
-					}
-					else
-					{
-						//Pop and place the value into the globals
-						lua_setfield(L, LUA_GLOBALSINDEX, it->c_str());
-					}
-				}
-				//Pop environment table
-				lua_pop(L, 1);
-				return;
-			}
-			error(L);
-		}
-}*/
+
 
 
 

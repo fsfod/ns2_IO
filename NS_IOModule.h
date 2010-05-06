@@ -5,27 +5,27 @@
 
 class LuaModule{
 	public:
-		static void ConvertAndValidatePath(lua_State *L, int ArgumentIndex, PathString& path);
+		static uint32_t GetFileSize(const PathStringArg& Path);
+		static bool FileExists(const PathStringArg& Path);
+		static int GetDateModifed(const PathStringArg& Path);
 		
-		static int GetFileSize(lua_State *L);
-		static int FileExists(lua_State *L);
-		static int FindFilesInDir(lua_State *L);
-		static int FindDirectorys(lua_State *L);
-		static int GetDirRootList(lua_State *L);
-		static int GetGameString(lua_State *L);
-		static int GetDateModifed(lua_State* L);
+		static luabind::object FindFiles(lua_State* L, const PathStringArg& SearchPath);
+		static luabind::object FindDirectorys(lua_State* L, const PathStringArg& SearchPath);
+		
+		static luabind::object GetDirRootList(lua_State *L);
+		static const PathStringArg&  GetGameString();
 
 		static void Initialize(lua_State *L){
 			FindNSRoot();
 			FindDirectoryRoots();
 		}
+	
+		static PathString NSRoot, GameString;
 
 	private:
 		static bool FindNSRoot();
 		static void FindDirectoryRoots();
 		static void ParseGameCommandline(PathString& CommandLine);
-		int SaveTableTest(lua_State *L);
 
-		static PathString NSRoot, GameString;
 		static std::vector<NSRootDir> RootDirs;
 };

@@ -1,11 +1,12 @@
 #include "StdAfx.h"
 #include "NSRootDir.h"
 #include "StringUtil.h"
+#include <sys/stat.h>
 
 using namespace std;
 
 
-NSRootDir::NSRootDir(PathString nsroot, PathString path){
+void NSRootDir::SetupPathStrings(const PathString& nsroot, const PathString& path){
 	PathLength = path.length()+nsroot.size()+1;
 
 	PathBuffer.reserve(PathLength);
@@ -13,18 +14,12 @@ NSRootDir::NSRootDir(PathString nsroot, PathString path){
 	PathBuffer.append(path);
 	PathBuffer.push_back('/');
 
-
 	Path.push_back('/');
 	Path.append(path);
 	Path.push_back('/');
 }
 
-NSRootDir::NSRootDir(){
-	PathLength = 0;
-}
-
-
-bool NSRootDir::FileExists(PathString& path){
+bool NSRootDir::FileExists(const PathString& path){
 	PathBuffer.append(path);
 
 	int result = GetFileAttributes(PathBuffer.c_str());
@@ -34,7 +29,7 @@ bool NSRootDir::FileExists(PathString& path){
 	return result != INVALID_FILE_ATTRIBUTES;
 }
 
-bool NSRootDir::FileSize(PathString& path, uint32_t& Filesize){
+bool NSRootDir::FileSize(const PathString& path, uint32_t& Filesize){
 	PathBuffer.append(path);
 
 	WIN32_FILE_ATTRIBUTE_DATA AttributeData;
@@ -52,7 +47,7 @@ bool NSRootDir::FileSize(PathString& path, uint32_t& Filesize){
 	return true;
 }
 
-bool NSRootDir::DirectoryExists(PathString& path){
+bool NSRootDir::DirectoryExists(const PathString& path){
 	PathBuffer.append(path);
 
 	int result = GetFileAttributes(PathBuffer.c_str());
@@ -62,7 +57,7 @@ bool NSRootDir::DirectoryExists(PathString& path){
 	return result != INVALID_FILE_ATTRIBUTES && (result&FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-int NSRootDir::FindFiles(PathString SearchPath, FileSearchResult& FoundFiles){
+int NSRootDir::FindFiles(const PathString SearchPath, FileSearchResult& FoundFiles){
 	
 	PathBuffer.append(SearchPath);
 
@@ -93,7 +88,7 @@ int NSRootDir::FindFiles(PathString SearchPath, FileSearchResult& FoundFiles){
 }
 
 
-int NSRootDir::FindDirectorys(PathString SearchPath, FileSearchResult& FoundDirectorys){
+int NSRootDir::FindDirectorys(const PathString SearchPath, FileSearchResult& FoundDirectorys){
 
 	PathBuffer.append(SearchPath);
 
@@ -124,13 +119,19 @@ int NSRootDir::FindDirectorys(PathString SearchPath, FileSearchResult& FoundDire
 }
 
 
-bool NSRootDir::GetModifedTime(const PathString& Path, uint64_t& Time){
+bool NSRootDir::GetModifedTime(const PathString& Path, uint32_t& Time){
 
 	PathBuffer.append(Path);
 
-	WIN32_FILE_ATTRIBUTE_DATA AttributeData;
+#ifdef UnicodePathString
+	struct _stat32 FileInfo;
 
-	int result = GetFileAttributesEx(PathBuffer.c_str(), GetFileExInfoStandard, &AttributeData);
+	int result = _wstat(PathBuffer.c_str(), &FileInfo);
+#else
+	struct stat FileInfo;
+
+	int result = stat(PathBuffer.c_str(), &FileInfo);
+#endif
 
 	ResetPathBuffer();
 
@@ -138,6 +139,7 @@ bool NSRootDir::GetModifedTime(const PathString& Path, uint64_t& Time){
 		return false;
 	}
 
+	Time = FileInfo.st_mtime;
 
 	return true;
 }

@@ -1,6 +1,10 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "stdafx.h"
 #include "NS_IOModule.h"
+#include "SavedVariables.h"
+#include <luabind/tag_function.hpp>
+#include "PathStringConverter.h"
+
 
 BOOL APIENTRY DllMain(HMODULE hModule,DWORD  ul_reason_for_call, LPVOID lpReserved){
 	switch (ul_reason_for_call){
@@ -13,29 +17,28 @@ BOOL APIENTRY DllMain(HMODULE hModule,DWORD  ul_reason_for_call, LPVOID lpReserv
 	return TRUE;
 }
 
-
-static const luaL_reg NSIOlib[] = {
-	{"GetGameString", LuaModule::GetGameString},
-	{"Exists", LuaModule::FileExists},
-	{"GetDirRootList", LuaModule::GetDirRootList},
-	{"FindFiles", LuaModule::FindFilesInDir},
-	{"FindDirectorys", LuaModule::FindDirectorys},
-	{"FileSize", LuaModule::GetFileSize},
-	{"DateModifed", LuaModule::GetDateModifed},
-	{NULL, NULL}
-};
-
-
 extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
+		
+	LuaModule::Initialize(L);
 
-	try{
-		LuaModule::Initialize(L);
+	using namespace luabind;
 
-		luaL_register(L, "NS2_IO", NSIOlib);
+	open(L);
 
-		return 1;
-	}catch(LuaErrorWrapper e){
-		e.DoLuaError(L);
-		return 0;
-	}
+	module(L,"NS2_IO")[
+		def("Exists", &LuaModule::FileExists),
+		def("FileSize", &LuaModule::GetFileSize),
+		def("FindFiles", &LuaModule::FindFiles),
+		def("FindDirectorys", &LuaModule::FindDirectorys),
+		def("DateModifed",  &LuaModule::GetDateModifed),
+		def("GetGameString",  &LuaModule::GetGameString),
+		def("GetDirRootList",  &LuaModule::GetDirRootList)
+	];
+
+	SavedVariables::RegisterObjects(L);
+	
+	//push our module onto the stack tobe our return value
+	lua_getglobal(L, "NS2_IO");
+
+	return 1;
 }
