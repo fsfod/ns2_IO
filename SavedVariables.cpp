@@ -8,12 +8,11 @@ PathString SavedVariables::SavedVariablesFolderPath(_T(""));
 
 using namespace std;
 
-SavedVariables::SavedVariables(const string& fname,  luabind::table<luabind::object> const& table){
+SavedVariables::SavedVariables(lua_State* L, const string& fname,  luabind::table<luabind::object> const& table){
 
 	SavedVariableFile = NULL;
 
 	if(luabind::type(table) == LUA_TTABLE){
-		
 		auto end = luabind::iterator();
 
 		try{
@@ -21,9 +20,9 @@ SavedVariables::SavedVariables(const string& fname,  luabind::table<luabind::obj
 				string TableName = luabind::object_cast<string>(*it);
 				VariableNames.push_back(TableName);
 			}
-		
+
 		}catch(luabind::cast_failed e){
-			throw exception("Found an entry in the Table names list that was not a string");
+			throw exception("Found an entry in the TableNames list that was not a string");
 		}
 	}
 
@@ -33,17 +32,22 @@ SavedVariables::SavedVariables(const string& fname,  luabind::table<luabind::obj
 		[this](const PathString::value_type& c){
 			if(c == '.' || c == '/'|| c == '\\'){
 				FileName.clear();
-				throw exception("the SavedVariables name cannot contain any of these characters \"\\./\"");
+				throw exception("the SavedVariables name cannot contain any of these characters \"\\\"./");
 			}
 		}
 	);
 
+	CreateShutdownCallback(L);
 	FileName.append(_T(".lua"));
 }
 
  
 SavedVariables::~SavedVariables(){
 
+	if(ShutdownClosureThisPointer != NULL){
+		*ShutdownClosureThisPointer = NULL;
+	}
+	
 	if(SavedVariableFile != NULL){
 		fclose(SavedVariableFile);
 		SavedVariableFile = NULL;
@@ -69,6 +73,38 @@ void SavedVariables::RegisterVariable(const string& varname){
 	
 }
 */
+
+int SavedVariables::ShutdownCallback(lua_State *L){
+	SavedVariables** savedvars = static_cast<SavedVariables**>(lua_touserdata(L, lua_upvalueindex(1)));
+
+	try{
+		//check to make sure our SavedVariables object has not been destroyed already
+		if(savedvars[0] != NULL){
+			(*savedvars)->ShutdownClosureThisPointer = NULL;
+			(*savedvars)->Save(L);
+		}
+	}catch(...){
+		delete savedvars;
+		return 0;
+	}
+
+	delete savedvars;
+	return 0;
+}
+
+void SavedVariables::CreateShutdownCallback(lua_State *L){
+	
+	lua_getglobal(L, "Script");
+	lua_getfield(L, -1, "AddShutdownFunction");
+	lua_remove(L, -2);
+
+	ShutdownClosureThisPointer = new void*[1];
+	ShutdownClosureThisPointer[0] = this;
+
+	lua_pushlightuserdata(L, ShutdownClosureThisPointer);
+	lua_pushcclosure(L, &ShutdownCallback, 1);
+	lua_call(L,1, 0);
+}
 
 int SavedVariables::Save(lua_State *L){
 
@@ -277,7 +313,7 @@ void SavedVariables::RegisterObjects(lua_State *L){
 	using namespace luabind;
 
 	module(L)[class_<SavedVariables>("SavedVariables")
-		.def(constructor<const string&, const luabind::table<luabind::object>&>())
+		.def(constructor<lua_State*, const string&, const luabind::table<luabind::object>&>())
 		.def("Save", &SavedVariables::Save)
 		.def("Load", &SavedVariables::Load)
 	];

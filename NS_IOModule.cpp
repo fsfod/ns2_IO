@@ -116,8 +116,8 @@ void LuaModule::ParseGameCommandline(PathString& CommandLine){
 			RootDirs.push_back(NSRootDir(GameStringPath, DirName.c_str()));
 		}
 
-		RootDirs.push_back(NSRootDir(NSRoot, "core"));
 		RootDirs.push_back(NSRootDir(NSRoot, "n2"));
+		RootDirs.push_back(NSRootDir(NSRoot, "core"));
 }
 
 
@@ -133,8 +133,8 @@ void LuaModule::FindDirectoryRoots(){
 
 		ParseGameCommandline(CommandLine);
 	}else{
-		RootDirs.push_back(NSRootDir(NSRoot, "core"));
 		RootDirs.push_back(NSRootDir(NSRoot, "ns2"));
+		RootDirs.push_back(NSRootDir(NSRoot, "core"));
 	}
 }
 
