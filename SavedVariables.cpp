@@ -20,7 +20,6 @@ SavedVariables::SavedVariables(lua_State* L, const string& fname,  luabind::tabl
 				string TableName = luabind::object_cast<string>(*it);
 				VariableNames.push_back(TableName);
 			}
-
 		}catch(luabind::cast_failed e){
 			throw exception("Found an entry in the TableNames list that was not a string");
 		}
@@ -203,7 +202,24 @@ void SavedVariables::SaveTable(lua_State *L){
 
 	IndentString.pop_back();
 }
+/*
+bool SavedVariables::EscapeString(const char* s, int length){
 
+	const char* end = s+length, *start = s;
+
+	vector<int> CharsToEscape;
+
+	do{
+		if(*s == 0 || *s == '\n' || *s == '\r'){
+			CharsToEscape.push_back(s-start);
+		}else if(*s == '\"'){
+
+		}
+
+	}while(s++ != end);
+
+}
+*/
 bool SavedVariables::IsaWrapper(lua_State *L, int index, const char* type){
 	
 	lua_getfield(L, index, "isa");
@@ -263,11 +279,12 @@ void SavedVariables::Load(lua_State *L){
 //	SavedVariableFile = fopen(FilePath.c_str(),	"w");
 #endif
 
-//adapted from 
+//adapted from http://danwellman.com/vws.html
 		if(luaL_loadfile(L, fullPath.c_str()) == 0){//FIXME need to handle unicode paths
 			//Set the chunk's environment to a table
 			lua_newtable(L);
 
+			//import the constructors for Vector and Angles
 			lua_getfield(L, LUA_GLOBALSINDEX, "Vector");
 			lua_setfield(L, -2, "Vector");
 			lua_getfield(L, LUA_GLOBALSINDEX, "Angles");

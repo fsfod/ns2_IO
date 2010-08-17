@@ -7,7 +7,7 @@ class LuaModule{
 	public:
 		static uint32_t GetFileSize(const PathStringArg& Path);
 		static bool FileExists(const PathStringArg& Path);
-		static int GetDateModifed(const PathStringArg& Path);
+		static int GetDateModified(const PathStringArg& Path);
 		
 		static luabind::object FindFiles(lua_State* L, const PathStringArg& SearchPath);
 		static luabind::object FindDirectorys(lua_State* L, const PathStringArg& SearchPath);

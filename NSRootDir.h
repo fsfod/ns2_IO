@@ -28,26 +28,32 @@ public:
 	NSRootDir(PathString nsroot, PathString path){SetupPathStrings(nsroot, path);}
 	~NSRootDir(){}
 
-
 	bool FileExists(const PathString& path);
 	bool DirectoryExists(const PathString& path);
 	int FindFiles(const PathString SearchPath, FileSearchResult& FoundFiles);
 	int FindDirectorys(const PathString SearchPath, FileSearchResult& FoundDirectorys);
 	bool FileSize(const PathString& path, uint32_t& Filesize);
-	bool GetModifedTime(const PathString& Path, uint32_t& Time);
+	bool GetModifiedTime(const PathString& Path, int32_t& Time);
 
 	PathString& GetPath(){
-		return Path;
+		return GameFileSystemPath;
 	}
 
+	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
+
+	static luabind::scope RegisterClass();
+
 private:
-	void ResetPathBuffer(){
-		PathBuffer.resize(PathLength);
-	}
+	int32_t Wrapper_GetModifedTime(const PathStringArg& Path);
+	bool Wrapper_FileExists(const PathStringArg& path);
+	uint32_t Wrapper_FileSize(const PathStringArg& Path);
+	luabind::object NSRootDir::Wrapper_FindDirectorys(lua_State *L, const PathStringArg& SearchString);
+	luabind::object Wrapper_FindFiles(lua_State* L, const PathStringArg& SearchString);
+
+private:
 
 	void CheckSpace(int newspareCapcity);
 	void SetupPathStrings(const PathString& nsroot, const PathString& path);
-
-	PathString Path, PathBuffer;
+	PathString GameFileSystemPath, RealPath;
 	int32_t PathLength;
 };

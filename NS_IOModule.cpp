@@ -126,7 +126,7 @@ void LuaModule::FindDirectoryRoots(){
 
 	PathString CommandLine(GetCommandLine());
 
-	int arg_postion = CommandLine.find(_T("//game"));
+	int arg_postion = CommandLine.find(_T("-game"));
 
 	if(arg_postion != -1){
 		PathString CommandLine = CommandLine.substr(arg_postion);
@@ -155,27 +155,27 @@ uint32_t LuaModule::GetFileSize(const PathStringArg& path) {
 	bool FileFound = false;
 	uint32_t FileSize = 0;
 
-	for(auto it = RootDirs.begin(); it < RootDirs.end() ; it++){
-		if(it->FileSize(path, FileSize)){
-			return FileSize;
-		}
-	}
-
-	throw exception("cannot get the size of a file that does not exist");
-}
-
-int LuaModule::GetDateModifed(const PathStringArg& path){
-
-		bool FileFound = false;
-		uint32_t ModifedTime = 0;
-
 		for(auto it = RootDirs.begin(); it < RootDirs.end() ; it++){
-			if(it->GetModifedTime(path, ModifedTime)){
-				return ModifedTime;
+			if(it->FileSize(path, FileSize)){
+				return FileSize;
 			}
 		}
 
 	throw exception("cannot get the size of a file that does not exist");
+}
+
+int LuaModule::GetDateModified(const PathStringArg& path){
+
+	bool FileFound = false;
+	int32_t ModifiedTime = 0;
+
+		for(auto it = RootDirs.begin(); it < RootDirs.end() ; it++){
+			if(it->GetModifiedTime(path, ModifiedTime)){
+				return ModifiedTime;
+			}
+		}
+
+	throw exception("cannot get the Date Modified time of a file that does not exist");
 }
 
 luabind::object LuaModule::FindFiles(lua_State* L, const PathStringArg& SearchString) {

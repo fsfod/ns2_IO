@@ -26,11 +26,13 @@ extern "C" {
 	#define UnicodePathString
 
 	typedef	std::wstring PathString;
-
-	struct PathStringArg : public PathString{};
 #else
 	typedef	std::string PathString;
 #endif
+
+//see PathStringCover.h for all the magic of PathStringArg
+//and also http://www.rasterbar.com/products/luabind/docs.html#adding-converters-for-user-defined-types
+struct PathStringArg : public PathString{};
 
 typedef PathString::value_type PathChar;
 

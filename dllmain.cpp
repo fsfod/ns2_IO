@@ -30,10 +30,14 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		def("FileSize", &LuaModule::GetFileSize),
 		def("FindFiles", &LuaModule::FindFiles),
 		def("FindDirectorys", &LuaModule::FindDirectorys),
-		def("DateModifed",  &LuaModule::GetDateModifed),
+		def("DateModified",  &LuaModule::GetDateModified),
 		def("GetGameString",  &LuaModule::GetGameString),
-		def("GetDirRootList",  &LuaModule::GetDirRootList)
+		def("GetDirRootList",  &LuaModule::GetDirRootList),
+
+		NSRootDir::RegisterClass()
 	];
+
+	
 
 	SavedVariables::RegisterObjects(L);
 	
