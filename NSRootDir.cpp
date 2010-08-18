@@ -2,6 +2,7 @@
 #include "NSRootDir.h"
 #include "StringUtil.h"
 #include <sys/stat.h>
+#include "PathStringConverter.h"
 
 using namespace std;
 
@@ -135,7 +136,7 @@ bool NSRootDir::GetModifiedTime(const PathString& FilePath, int32_t& Time){
 void NSRootDir::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 
 #ifdef UnicodePathString
-	std:string fullpath(0);
+	std:string fullpath("");
 
 	WStringToUTF8STLString(RealPath+FilePath, fullpath);
 #else
@@ -182,7 +183,6 @@ luabind::object NSRootDir::Wrapper_FindFiles(lua_State* L, const PathStringArg& 
 
 	FileSearchResult Results;
 		this->FindFiles(SearchString, Results);
-
 
 	lua_createtable(L, Results.size(), 0);
 	luabind::object table = luabind::object(luabind::from_stack(L,-1));

@@ -39,7 +39,6 @@ public:
 		return GameFileSystemPath;
 	}
 
-	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
 
 	static luabind::scope RegisterClass();
 
@@ -50,10 +49,9 @@ private:
 	luabind::object NSRootDir::Wrapper_FindDirectorys(lua_State *L, const PathStringArg& SearchString);
 	luabind::object Wrapper_FindFiles(lua_State* L, const PathStringArg& SearchString);
 
-private:
-
-	void CheckSpace(int newspareCapcity);
 	void SetupPathStrings(const PathString& nsroot, const PathString& path);
+	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
+
 	PathString GameFileSystemPath, RealPath;
 	int32_t PathLength;
 };

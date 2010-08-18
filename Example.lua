@@ -5,11 +5,11 @@ local io = require("NS2_IO")
 
 	--finds all the lua files in the /lua directory
 	local files = io.FindFiles("/lua/*.lua")
-	
+
 	for _,file in ipairs(files) do
 		Shared.Message(file)
 	end
-	
+
 	for _,dir in ipairs(io.FindDirectorys("/lua/*")) do
 		Shared.Message(dir)
 	end

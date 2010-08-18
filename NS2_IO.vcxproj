@@ -58,8 +58,8 @@
       <AdditionalDependencies>lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\ns2\lua\$(TargetName)$(TargetExt)"
-copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\ns2\lua\$(TargetName).pdb"</Command>
+      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\$(TargetName)$(TargetExt)"
+copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\$(TargetName).pdb"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -84,7 +84,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Nat
       <AdditionalDependencies>lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\ns2\lua\$(TargetName)$(TargetExt)"</Command>
+      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\$(TargetName)$(TargetExt)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

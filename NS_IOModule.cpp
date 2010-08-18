@@ -83,7 +83,7 @@ void LuaModule::ParseGameCommandline(PathString& CommandLine){
 			}
 		}while(++it != CommandLine.end());
 
-		if(!(HasQuotedString && Found) || it != CommandLine.end()){
+		if((HasQuotedString && !Found) || (!HasQuotedString && it != CommandLine.end()) ){
 			throw LuaErrorWrapper("failed to parse game command line argument(formating2)");
 		}
 
@@ -116,7 +116,7 @@ void LuaModule::ParseGameCommandline(PathString& CommandLine){
 			RootDirs.push_back(NSRootDir(GameStringPath, DirName.c_str()));
 		}
 
-		RootDirs.push_back(NSRootDir(NSRoot, "n2"));
+		RootDirs.push_back(NSRootDir(NSRoot, "ns2"));
 		RootDirs.push_back(NSRootDir(NSRoot, "core"));
 }
 
@@ -129,9 +129,9 @@ void LuaModule::FindDirectoryRoots(){
 	int arg_postion = CommandLine.find(_T("-game"));
 
 	if(arg_postion != -1){
-		PathString CommandLine = CommandLine.substr(arg_postion);
+		PathString GameCmd = CommandLine.substr(arg_postion+5);
 
-		ParseGameCommandline(CommandLine);
+		ParseGameCommandline(GameCmd);
 	}else{
 		RootDirs.push_back(NSRootDir(NSRoot, "ns2"));
 		RootDirs.push_back(NSRootDir(NSRoot, "core"));
@@ -241,6 +241,15 @@ luabind::object LuaModule::GetDirRootList(lua_State *L) {
 	}
 
 	return table;
+}
+
+NSRootDir* LuaModule::GetRootDirectory(int index) {
+	
+	if(index < 0 || index >= RootDirs.size()) {
+		throw exception("GetRootDirectory Directory index out of range");
+	}
+
+	return &RootDirs[index];
 }
 
 const PathStringArg& LuaModule::GetGameString() {

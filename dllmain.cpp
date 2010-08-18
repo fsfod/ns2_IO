@@ -26,6 +26,7 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 	open(L);
 
 	module(L,"NS2_IO")[
+		def("GetRootDirectory", &LuaModule::GetRootDirectory),
 		def("Exists", &LuaModule::FileExists),
 		def("FileSize", &LuaModule::GetFileSize),
 		def("FindFiles", &LuaModule::FindFiles),
