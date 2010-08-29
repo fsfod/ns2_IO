@@ -51,6 +51,8 @@ private:
 
 	void SetupPathStrings(const PathString& nsroot, const PathString& path);
 	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
+	
+	const PathStringArg& get_Path();
 
 	PathString GameFileSystemPath, RealPath;
 	int32_t PathLength;

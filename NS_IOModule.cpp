@@ -230,14 +230,7 @@ luabind::object LuaModule::GetDirRootList(lua_State *L) {
 	auto it = RootDirs.begin();
 
 	for(uint32_t i = 0; i < RootDirs.size() ; i++,it++){
-#ifdef UnicodePathString
-		//string Apath;
-		//UTF16ToUTF8STLString(RootDirs[i].GetPath().c_str(), Apath);
-		table[i+1] = static_cast<PathStringArg&>(RootDirs[i].GetPath());
-#else
-		const string& temp = (*it).GetPath();
-		table[i+1] =  temp;
-#endif
+		table[i+1] = RootDirs[i];
 	}
 
 	return table;

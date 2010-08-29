@@ -213,9 +213,15 @@ luabind::object NSRootDir::Wrapper_FindDirectorys(lua_State *L, const PathString
 	return table;
 }
 
+const PathStringArg&  NSRootDir::get_Path(){
+	return static_cast<const PathStringArg&>(GameFileSystemPath);
+}
+
+
 luabind::scope NSRootDir::RegisterClass(){
 
 	return luabind::class_<NSRootDir>("RootDirectory")
+					.def_readonly("Path", &NSRootDir::get_Path)
 					.def("Exists", &NSRootDir::Wrapper_FileExists)
 					.def("FileSize", &NSRootDir::Wrapper_FileSize)
 					.def("DateModifed", &NSRootDir::Wrapper_GetModifedTime)
