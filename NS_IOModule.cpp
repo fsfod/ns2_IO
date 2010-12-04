@@ -4,18 +4,40 @@
 #include "NS_IOModule.h"
 #include "StringUtil.h"
 #include <algorithm>
+namespace boostfs = boost::filesystem;
+
 #include "PathStringConverter.h"
+#include "StringUtil.h"
+
+
 using namespace  std;
 
 //LuaModule::LuaModule(){
+PathString LuaModule::CommandLine(_T(""));
 PathString LuaModule::NSRoot(_T(""));
 PathString LuaModule::GameString(_T(""));;
-std::vector<NSRootDir> LuaModule::RootDirs(0);
+boost::ptr_vector<FileSource> LuaModule::RootDirs(0);
 //{
 
+//PathMatchSpecEx for matching files names on windows
+//fnmatch on linux will do the same directorys 
 
-bool LuaModule::FindNSRoot(){
-	HMODULE hmodule = GetModuleHandleA("ns2.exe");
+
+void LuaModule::Initialize(lua_State *L){
+	
+	FindNSRoot();
+	FindDirectoryRoots();
+
+	PathString directorystxt = NSRoot+_T("directorys.txt");
+
+	if(boostfs::exists(directorystxt)){
+		
+	}
+	
+}
+
+void LuaModule::FindNSRoot(){
+	HMODULE hmodule = GetModuleHandleW(NULL);
 
 	if(hmodule == INVALID_HANDLE_VALUE){
 		throw LuaErrorWrapper("NSIO failed to get the module handle to ns2.exe to find ns2 root directory");
@@ -29,23 +51,20 @@ bool LuaModule::FindNSRoot(){
 
 		pathLen = GetModuleFileName(hmodule, (wchar_t*)NSRoot.c_str(), pathLen);
 	}
+	
+	boostfs::wpath exepath = boostfs::wpath(NSRoot);
+	NSRoot = exepath.parent_path().string();
 
-	for_each(NSRoot.begin(), NSRoot.end(), [](PathString::value_type& c){if(c == '\\')c = '/';});
+	replace(NSRoot.begin(), NSRoot.end(), '\\', '/');
 
-	int index = NSRoot.find_last_of('/');
+	NSRoot.push_back('/');
 
-	if(index != -1) {
-		NSRoot.resize(index, 0);
-		NSRoot.push_back('/');
-	}
-
-	return true;
 }
 
 void LuaModule::ParseGameCommandline(PathString& CommandLine){
 
 	if(CommandLine.length() < 2  || CommandLine[0] != ' ' || CommandLine[0] == '=' ){
-		throw LuaErrorWrapper("failed to parse game command line argument(find arg start)");
+		throw exception("failed to parse \"game\" command line argument(find arg start)");
 	}
 
 		auto it = CommandLine.begin();
@@ -84,58 +103,63 @@ void LuaModule::ParseGameCommandline(PathString& CommandLine){
 		}while(++it != CommandLine.end());
 
 		if((HasQuotedString && !Found) || (!HasQuotedString && it != CommandLine.end()) ){
-			throw LuaErrorWrapper("failed to parse game command line argument(formating2)");
+			throw exception("failed to parse game command line argument(formating2)");
 		}
 
 		GameString = CommandLine.substr(startpos, it-PathArgStart);
 
-		if(GameString.find(':') == -1){
-			RootDirs.push_back(NSRootDir(NSRoot, GameString.c_str()));
+		if(GameString.find(':') == string::npos){
+			RootDirs.push_back(static_cast<FileSource*>(new NSRootDir(NSRoot, GameString.c_str()) ));
 		}else{
-			for_each(GameString.begin(), GameString.end(), [](wchar_t& c){if(c == '\\')c = '/';});
+			replace(GameString.begin(), GameString.end(), '\\', '/');
 
-			int index = GameString.find_last_of('/');
+			int index = GameString.rfind('/');
 
 			if(index == GameString.size()-1){
-				GameString[GameString.size()-1] = 0;
-				index = GameString.find_last_of('/');
-				GameString[GameString.size()-1] = '/';
+				index = GameString.rfind('/', GameString.size()-1);
 			}
 
-			if(index == -1) {
-				throw LuaErrorWrapper("failed to parse game command line argument(path)");
+			if(index == string::npos) {
+				throw exception("failed to parse game command line argument(path)");
 			}
 
 			PathString GameStringPath = GameString.substr(0, index+1);
 			PathString DirName = GameString.substr(index+1, GameString.size() - index+1);
 
-			if(*--DirName.end() == '/'){
+			if(DirName.back() == '/'){
 				DirName.resize(DirName.size()-1);
 			}
 
-			RootDirs.push_back(NSRootDir(GameStringPath, DirName.c_str()));
+			RootDirs.push_back(new NSRootDir(GameStringPath, DirName.c_str()));
 		}
 
-		RootDirs.push_back(NSRootDir(NSRoot, "ns2"));
-		RootDirs.push_back(NSRootDir(NSRoot, "core"));
+		RootDirs.push_back(new NSRootDir(NSRoot, "ns2"));
+		RootDirs.push_back(new NSRootDir(NSRoot, "core"));
 }
 
 
 
 void LuaModule::FindDirectoryRoots(){
 
-	PathString CommandLine(GetCommandLine());
+	CommandLine.assign(GetCommandLine());
 
 	int arg_postion = CommandLine.find(_T("-game"));
 
-	if(arg_postion != -1){
+	if(arg_postion != string::npos){
 		PathString GameCmd = CommandLine.substr(arg_postion+5);
 
 		ParseGameCommandline(GameCmd);
 	}else{
-		RootDirs.push_back(NSRootDir(NSRoot, "ns2"));
-		RootDirs.push_back(NSRootDir(NSRoot, "core"));
+		RootDirs.push_back(new NSRootDir(NSRoot, "ns2"));
+		RootDirs.push_back(new NSRootDir(NSRoot, "core"));
 	}
+}
+
+string LuaModule::GetCommandLineRaw(){
+	string s;
+	WStringToUTF8STLString(CommandLine, s);
+	
+	return s;
 }
 
 
@@ -143,20 +167,20 @@ bool LuaModule::FileExists(const PathStringArg& path) {
 
 	bool FileFound = false;
 
-	for(int i = 0; i < 2 ; i++){
-		if(RootDirs[i].FileExists(path)) return true;
+	BOOST_FOREACH(FileSource& source, RootDirs){
+		if(source.FileExists(path)) return true;
 	}
 
 	return false;
 }
 
-uint32_t LuaModule::GetFileSize(const PathStringArg& path) {
+double LuaModule::GetFileSize(const PathStringArg& path) {
 
 	bool FileFound = false;
-	uint32_t FileSize = 0;
+	double FileSize = 0;
 
-		for(auto it = RootDirs.begin(); it < RootDirs.end() ; it++){
-			if(it->FileSize(path, FileSize)){
+		BOOST_FOREACH(FileSource& source, RootDirs){
+			if(source.FileSize(path, FileSize)){
 				return FileSize;
 			}
 		}
@@ -169,24 +193,22 @@ int LuaModule::GetDateModified(const PathStringArg& path){
 	bool FileFound = false;
 	int32_t ModifiedTime = 0;
 
-		for(auto it = RootDirs.begin(); it < RootDirs.end() ; it++){
-			if(it->GetModifiedTime(path, ModifiedTime)){
+		BOOST_FOREACH(FileSource& source, RootDirs){
+			if(source.GetModifiedTime(path, ModifiedTime)){
 				return ModifiedTime;
 			}
 		}
 
-	throw exception("cannot get the Date Modified time of a file that does not exist");
+	throw exception("cannot get the Date Modified of a file that does not exist");
 }
 
-luabind::object LuaModule::FindFiles(lua_State* L, const PathStringArg& SearchString) {
+luabind::object LuaModule::FindFiles( lua_State* L, const PathStringArg SearchPath, const PathStringArg& NamePatten ){
 
 	FileSearchResult Results;
 
-	for_each(RootDirs.begin(), RootDirs.end(),
-		[&](NSRootDir& dir){
-			dir.FindFiles(SearchString, Results);
-		}
-	);
+	BOOST_FOREACH(FileSource& source, RootDirs){
+		source.FindFiles(SearchPath, NamePatten, Results);
+	}
 
 	lua_createtable(L, Results.size(), 0);
 	luabind::object table = luabind::object(luabind::from_stack(L,-1));
@@ -200,15 +222,14 @@ luabind::object LuaModule::FindFiles(lua_State* L, const PathStringArg& SearchSt
 	return table;
 }
 
-luabind::object LuaModule::FindDirectorys(lua_State *L, const PathStringArg& SearchString) {
+luabind::object LuaModule::FindDirectorys( lua_State* L, const PathStringArg SearchPath, const PathStringArg& NamePatten )
+{
 
 	FileSearchResult Results;
 
-	for_each(RootDirs.begin(), RootDirs.end(),
-		[&](NSRootDir& dir){
-			dir.FindDirectorys(SearchString, Results);
-		}
-	);
+	BOOST_FOREACH(FileSource& source, RootDirs){
+		source.FindDirectorys(SearchPath, NamePatten, Results);
+	}
 
 	lua_createtable(L, Results.size(), 0);
 	luabind::object table = luabind::object(luabind::from_stack(L,-1));
@@ -216,7 +237,7 @@ luabind::object LuaModule::FindDirectorys(lua_State *L, const PathStringArg& Sea
 	auto it = Results.begin();
 
 	for(uint32_t i = 0; i < Results.size() ; i++,it++){
-		table[i+1] =  it->first.c_str();
+		table[i+1] = it->first.c_str();
 	}
 
 	return table;
@@ -229,16 +250,17 @@ luabind::object LuaModule::GetDirRootList(lua_State *L) {
 
 	auto it = RootDirs.begin();
 
+
 	for(uint32_t i = 0; i < RootDirs.size() ; i++,it++){
-		table[i+1] = RootDirs[i];
+		table[i+1] = luabind::object(L, &RootDirs[i]);
 	}
 
 	return table;
 }
 
-NSRootDir* LuaModule::GetRootDirectory(int index) {
+FileSource* LuaModule::GetRootDirectory(int index) {
 	
-	if(index < 0 || index >= RootDirs.size()) {
+	if(index < 0 || (size_t)index >= RootDirs.size()) {
 		throw exception("GetRootDirectory Directory index out of range");
 	}
 

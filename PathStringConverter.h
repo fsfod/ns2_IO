@@ -1,5 +1,4 @@
 #pragma once
-#include "stdafx.h"
 #include "StringUtil.h"
 
 namespace luabind{
@@ -11,23 +10,33 @@ namespace luabind{
 
 		PathStringArg from(lua_State* L, int index){
 			size_t StringSize = 0;
-			const char* string = luaL_checklstring (L, index, &StringSize);
+			const char* s = luaL_checklstring (L, index, &StringSize);
 
-			if(string == NULL){
+			if(s == NULL){
 				throw std::exception("Missing string argument TODO");
 			}
 
-			if(string[0] == '/' || string[0] == '\\'){
-				string = string+ 1;
+			size_t len = strlen(s);
+
+			if(len != StringSize){
+				throw std::exception("Path string arguments can't contain embedded nulls");
+			}
+
+			if(s[0] == '/' || s[0] == '\\'){
+				s = s+ 1;
 			}
 
 			PathStringArg path;
-#if defined(UNICODE)
-			UTF8ToWString(string, path);
+#if defined(UnicodePathString)
+			UTF8ToWString(s, len, path);
 #else
-			path.assign(string);
+			path.assign(s);
 #endif
 			std::for_each(path.begin(), path.end(), [](PathString::value_type& c){if(c == '\\')c = '/';});
+
+			if(path.find_first_of(_T(":%|<>\"")) != NULL){
+				throw std::exception("The Path cannot contain :%|<>\"");
+			}
 
 			if(path.find(L"..") != -1){
 				throw std::exception("The Path cannot contain the directory up string \"..\"");

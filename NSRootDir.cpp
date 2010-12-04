@@ -1,14 +1,15 @@
 #include "StdAfx.h"
+#include "boost/filesystem.hpp"
 #include "NSRootDir.h"
 #include "StringUtil.h"
-#include <sys/stat.h>
-#include "PathStringConverter.h"
+
 
 using namespace std;
+namespace bfs = boost::filesystem ;
 
-
+ 
 void NSRootDir::SetupPathStrings(const PathString& nsroot, const PathString& path){
-	PathLength = path.length()+nsroot.size()+1;
+	size_t PathLength = path.length()+nsroot.size()+1;
 
 	RealPath.reserve(PathLength);
 	RealPath = nsroot;
@@ -21,27 +22,22 @@ void NSRootDir::SetupPathStrings(const PathString& nsroot, const PathString& pat
 }
 
 bool NSRootDir::FileExists(const PathString& FilePath){
-	PathString fullpath = RealPath+FilePath;
+	//PathString fullpath = RealPath+FilePath;
 
-	int result = GetFileAttributes(FilePath.c_str());
+//	int result = GetFileAttributes(FilePath.c_str());
 
-	return result != INVALID_FILE_ATTRIBUTES;
+	return bfs::exists(RealPath+FilePath);//result != INVALID_FILE_ATTRIBUTES;
 }
 
-bool NSRootDir::FileSize(const PathString& FilePath, uint32_t& Filesize){
+bool NSRootDir::FileSize(const PathString& FilePath, double& Filesize){
 	PathString fullpath = RealPath+FilePath;
 
-	WIN32_FILE_ATTRIBUTE_DATA AttributeData;
-
-	int result = GetFileAttributesEx(fullpath.c_str(), GetFileExInfoStandard, &AttributeData);
-
-	if(result == 0){
+	if(!bfs::exists(fullpath)){
 		return false;
+	}else{
+		Filesize = bfs::file_size(fullpath);
+	 return true;
 	}
-
-	Filesize = AttributeData.nFileSizeLow;
-
-	return true;
 }
 
 bool NSRootDir::DirectoryExists(const PathString& DirectoryPath){
@@ -52,9 +48,9 @@ bool NSRootDir::DirectoryExists(const PathString& DirectoryPath){
 	return result != INVALID_FILE_ATTRIBUTES && (result&FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-int NSRootDir::FindFiles(const PathString SearchPath, FileSearchResult& FoundFiles){
+int NSRootDir::FindFiles(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundFiles){
 	
-	PathString fullpath = RealPath+SearchPath;
+	PathString fullpath = RealPath+SearchPath+NamePatten;
 
 	WIN32_FIND_DATAW FindData;
 	memset(&FindData, 0, sizeof(FindData));
@@ -77,13 +73,15 @@ int NSRootDir::FindFiles(const PathString SearchPath, FileSearchResult& FoundFil
 		}
 	}while(FindNextFile(FHandle, &FindData));
 
+	FindClose(FHandle);
+
 	return count;
 }
 
 
-int NSRootDir::FindDirectorys(const PathString SearchPath, FileSearchResult& FoundDirectorys){
+int NSRootDir::FindDirectorys(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundDirectorys){
 
-	PathString fullpath = RealPath+SearchPath;
+	PathString fullpath = RealPath+SearchPath+NamePatten;
 
 	WIN32_FIND_DATAW FindData;
 	memset(&FindData, 0, sizeof(FindData));
@@ -105,6 +103,8 @@ int NSRootDir::FindDirectorys(const PathString SearchPath, FileSearchResult& Fou
 			count++;
 		}
 	}while(FindNextFile(FHandle, &FindData));
+
+	FindClose(FHandle);
 
 	return count;
 }
@@ -136,13 +136,14 @@ bool NSRootDir::GetModifiedTime(const PathString& FilePath, int32_t& Time){
 void NSRootDir::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 
 #ifdef UnicodePathString
-	std:string fullpath("");
+	std::string fullpath("");
 
 	WStringToUTF8STLString(RealPath+FilePath, fullpath);
 #else
-	std:string fullpath = RealPath+FilePath;
+	std::string fullpath = RealPath+FilePath;
 #endif
-	
+
+
 	//FIXME need to handle unicode paths
 	int LoadResult = luaL_loadfile(L, fullpath.c_str());
 
@@ -155,77 +156,6 @@ void NSRootDir::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 ////////////////////////////////////////////////////////////////////
 
 
-int32_t NSRootDir::Wrapper_GetModifedTime(const PathStringArg& Path){
-	int time = 0;
-	
-	if(this->GetModifiedTime(static_cast<PathString>(Path), time)){
-		throw exception("RootDir::DateModifed cannot get the modified time of a file that does not exist");
-	}
-
-	return time;
-}
-
-bool NSRootDir::Wrapper_FileExists(const PathStringArg& path){
-	return this->FileExists(static_cast<const PathString&>(path));
-}
-
-uint32_t NSRootDir::Wrapper_FileSize(const PathStringArg& Path){
-	uint32_t size = 0;
-
-	if(this->FileSize(static_cast<const PathString&>(Path), size)){
-		throw exception("RootDir::FileSize cannot get the size of a file that does not exist");
-	}
-
-	return size;
-}
-
-luabind::object NSRootDir::Wrapper_FindFiles(lua_State* L, const PathStringArg& SearchString){
-
-	FileSearchResult Results;
-		this->FindFiles(SearchString, Results);
-
-	lua_createtable(L, Results.size(), 0);
-	luabind::object table = luabind::object(luabind::from_stack(L,-1));
-
-	auto it = Results.begin();
-
-	for(uint32_t i = 0; i < Results.size() ; i++,it++){
-		table[i+1] =  it->first;
-	}
-
-	return table;
-}
-
-luabind::object NSRootDir::Wrapper_FindDirectorys(lua_State *L, const PathStringArg& SearchString){
-
-	FileSearchResult Results;
-	int count = this->FindDirectorys(SearchString, Results);
-
-	lua_createtable(L, Results.size(), 0);
-	luabind::object table = luabind::object(luabind::from_stack(L,-1));
-
-	auto it = Results.begin();
-
-	for(uint32_t i = 0; i < count ; i++,it++){
-		table[i+1] = it->first.c_str();
-	}
-
-	return table;
-}
-
 const PathStringArg&  NSRootDir::get_Path(){
-	return static_cast<const PathStringArg&>(GameFileSystemPath);
-}
-
-
-luabind::scope NSRootDir::RegisterClass(){
-
-	return luabind::class_<NSRootDir>("RootDirectory")
-					.def_readonly("Path", &NSRootDir::get_Path)
-					.def("Exists", &NSRootDir::Wrapper_FileExists)
-					.def("FileSize", &NSRootDir::Wrapper_FileSize)
-					.def("DateModifed", &NSRootDir::Wrapper_GetModifedTime)
-					.def("FindDirectorys", &NSRootDir::Wrapper_FindDirectorys)
-					.def("FindFiles", &NSRootDir::Wrapper_FindFiles)
-					.def("LoadLuaFile", &NSRootDir::LoadLuaFile);
+	return reinterpret_cast<const PathStringArg&>(GameFileSystemPath);
 }

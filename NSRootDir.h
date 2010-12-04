@@ -1,19 +1,17 @@
 #include "stdafx.h"
-#include <unordered_map>
 #include "LuaErrorWrapper.h"
 #include "StringUtil.h"
+#include "FileSource.h"
 
 #pragma once
 
 class NSRootDir;
 
-typedef std::tr1::unordered_map<std::string,NSRootDir*> FileSearchResult;
 
-
-class NSRootDir{
+class NSRootDir : public FileSource{
 
 public:
-		NSRootDir(){PathLength = 0;}
+		NSRootDir(){}
 		NSRootDir(PathString nsroot, char* path){
 #if defined(UNICODE)
 		std::wstring wpath;
@@ -30,30 +28,22 @@ public:
 
 	bool FileExists(const PathString& path);
 	bool DirectoryExists(const PathString& path);
-	int FindFiles(const PathString SearchPath, FileSearchResult& FoundFiles);
-	int FindDirectorys(const PathString SearchPath, FileSearchResult& FoundDirectorys);
-	bool FileSize(const PathString& path, uint32_t& Filesize);
+	int FindFiles(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundFiles);
+	int FindDirectorys(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundDirectorys);
+	bool FileSize(const PathString& path, double& Filesize);
 	bool GetModifiedTime(const PathString& Path, int32_t& Time);
+
+	const PathStringArg& get_Path();
 
 	PathString& GetPath(){
 		return GameFileSystemPath;
 	}
 
-
-	static luabind::scope RegisterClass();
-
 private:
-	int32_t Wrapper_GetModifedTime(const PathStringArg& Path);
-	bool Wrapper_FileExists(const PathStringArg& path);
-	uint32_t Wrapper_FileSize(const PathStringArg& Path);
-	luabind::object NSRootDir::Wrapper_FindDirectorys(lua_State *L, const PathStringArg& SearchString);
-	luabind::object Wrapper_FindFiles(lua_State* L, const PathStringArg& SearchString);
-
 	void SetupPathStrings(const PathString& nsroot, const PathString& path);
 	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
 	
-	const PathStringArg& get_Path();
 
 	PathString GameFileSystemPath, RealPath;
-	int32_t PathLength;
 };
+

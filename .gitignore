@@ -30,3 +30,5 @@ _ReSharper*/
 *ipch*
 *.filters
 *.opensdf
+7zip/
+*fastformat*/

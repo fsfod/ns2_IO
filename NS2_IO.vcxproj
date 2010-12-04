@@ -38,8 +38,13 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -55,7 +60,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua51.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\$(TargetName)$(TargetExt)"
@@ -81,14 +86,19 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Nat
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <AdditionalDependencies>lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua51.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\$(TargetName)$(TargetExt)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="7ZipFormatInfo.h" />
+    <ClInclude Include="7zip\CPP\Windows\PropVariant.h" />
+    <ClInclude Include="Archive.h" />
+    <ClInclude Include="C7ZipLibrary.h" />
     <ClInclude Include="LuaErrorWrapper.h" />
+    <ClInclude Include="FileSource.h" />
     <ClInclude Include="NSRootDir.h" />
     <ClInclude Include="PathStringConverter.h" />
     <ClInclude Include="SavedVariables.h" />
@@ -98,15 +108,14 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Nat
     <ClInclude Include="NS_IOModule.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </PrecompiledHeader>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="7zip\CPP\7zip\Common\FileStreams.cpp" />
+    <ClCompile Include="7zip\CPP\Windows\FileIO.cpp" />
+    <ClCompile Include="7zip\CPP\Windows\PropVariant.cpp" />
+    <ClCompile Include="Archive.cpp" />
+    <ClCompile Include="C7ZipLibrary.cpp" />
+    <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="LuaErrorWrapper.cpp" />
+    <ClCompile Include="FileSource.cpp" />
     <ClCompile Include="NSRootDir.cpp" />
     <ClCompile Include="SavedVariables.cpp" />
     <ClCompile Include="stdafx.cpp">
