@@ -28,32 +28,29 @@ C7ZipLibrary::C7ZipLibrary(void* libaryHandle){
 }
 
 using namespace std;
-namespace bfs = boost::filesystem ;
+namespace boostfs = boost::filesystem ;
 
 
-static const wchar_t* Extensions[] = {_T("zip"), _T("7z"), _T("rar")};
+static const wchar_t* Extensions[] = {_T(".zip"), _T(".7z"), _T(".rar")};
 
 unordered_set<wstring> ValidExtensions(0);
 
-C7ZipLibrary* C7ZipLibrary::Init(PathString& LibaryPath){
+C7ZipLibrary* C7ZipLibrary::Init( PlatformPath& LibaryPath )
+{
 
 	BOOST_FOREACH(const wchar_t* s, Extensions){
 		ValidExtensions.insert(wstring(s));
 	}
 
 #ifdef _WIN32
-	void* pHandler = LoadLibrary(L"7z.dll");
+	void* pHandler = LoadLibrary(LibaryPath.c_str());
 #else
 	void* pHandler = dlopen("7z.so", RTLD_LAZY | RTLD_GLOBAL);
 #endif
 
 	if (pHandler == NULL)throw std::exception("Failed to load 7zip library");
 
-	C7ZipLibrary* SevenZip = new C7ZipLibrary(pHandler);
-
-	SevenZip->OpenArchive(PathString(_T("I:\\ns2stuff\\NS2_IO\\stuff.zip")));
-
-	return SevenZip;
+	return new C7ZipLibrary(pHandler);
 }
 
 C7ZipLibrary::~C7ZipLibrary(void){
@@ -61,7 +58,7 @@ C7ZipLibrary::~C7ZipLibrary(void){
 
 void SplitString(const wstring &srcString, vector<wstring> &destStrings){
 	destStrings.clear();
-	wstring s;
+	wstring s(L".");
 	size_t len = srcString.length();
 	if (len == 0)return;
 
@@ -72,6 +69,7 @@ void SplitString(const wstring &srcString, vector<wstring> &destStrings){
 			if(!s.empty()){
 				destStrings.push_back(s);
 				s.clear();
+				s.push_back('.');
 			}
 		}else{
 			s += c;
@@ -150,17 +148,16 @@ bool C7ZipLibrary::LoadFormats(){
 }
 
 
-FileSource* C7ZipLibrary::OpenArchive(PathString& ArchivePath){
 
-	int index = ArchivePath.find_last_of('.');
+FileSource* C7ZipLibrary::OpenArchive( const PlatformPath& ArchivePath){
 
-	if(index == PathString::npos || (ArchivePath.length()-index+1) == 0){
+	auto ext = ArchivePath.extension();
+
+	if(ext.empty()){
 		throw exception("Archive file name has no extension");
 	}
 
-	PathString ext = ArchivePath.substr(index+1);
-
-	auto reader = ArchiveFormats.find(ext);
+	auto reader = ArchiveFormats.find(ext.wstring());
 
 	if(reader == ArchiveFormats.end()){
 		throw exception("Unknown archive file extension");
@@ -172,7 +169,7 @@ FileSource* C7ZipLibrary::OpenArchive(PathString& ArchivePath){
 	CreateObject(&format->m_ClassID, &IID_IInArchive, (void **)&archive);
 
 	CInFileStream* inStream = new CInFileStream();
-	
+	 
 	if(!inStream->Open(ArchivePath.c_str())){
 		delete inStream;
 		throw exception("Failed to open archive");
@@ -183,7 +180,7 @@ FileSource* C7ZipLibrary::OpenArchive(PathString& ArchivePath){
 		throw exception("Archive is either invalid or 7zip was unable y");
 	}
 
-	return new Archive(this, ArchivePath, archive);
+	return new Archive(this, ArchivePath.string(), archive);
 
 }
 

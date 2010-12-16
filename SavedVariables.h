@@ -3,20 +3,6 @@
 
 class luabind::object;
 
-struct VarTableRef{
-
-	VarTableRef(){}
-	
-	VarTableRef(std::string tableName, std::string globalName){
-		TableName = tableName;
-		globalName = GlobalName;
-	}
-
-	std::string TableName;
-	std::string GlobalName;
-	luabind::handle Table;
-};
-
 class SavedVariables{
 	public:
 		SavedVariables(lua_State* L, const std::string& fname, luabind::table<luabind::object> const& tableNames);
@@ -36,7 +22,7 @@ private:
 		bool IsaWrapper(lua_State *L, int index, const char* type);
 		void CreateShutdownCallback(lua_State *L);
 
-		PathString FileName;
+		PlatformString FileName;
 		std::vector<std::string> VariableNames;
 		luabind::object ContainerTable;
 		std::string IndentString;
@@ -46,8 +32,10 @@ private:
 		static void CheckCreateSVDir();
 		static void CacheObjectIdentData(lua_State* L);
 		static int ShutdownCallback(lua_State *L);
+		
+		inline void WriteValue(lua_State* L);
 
-		static PathString SavedVariablesFolderPath;
+		static PlatformPath SavedVariablesFolderPath;
 		bool ExitAutoSave;
 };
 

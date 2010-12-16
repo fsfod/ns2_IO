@@ -6,7 +6,9 @@ using namespace std;
 int32_t FileSource::Lua_GetModifedTime(const PathStringArg& Path){
 	int time = 0;
 
-	if(this->GetModifiedTime(static_cast<PathString>(Path), time)){
+	ConvertAndValidatePath(Path);
+
+	if(this->GetModifiedTime(Path, time)){
 		throw exception("RootDir::DateModifed cannot get the modified time of a file that does not exist");
 	}
 
@@ -14,21 +16,26 @@ int32_t FileSource::Lua_GetModifedTime(const PathStringArg& Path){
 }
 
 bool FileSource::Lua_FileExists(const PathStringArg& path){
-	return this->FileExists(static_cast<const PathString&>(path));
+	ConvertAndValidatePath(path);
+	return this->FileExists(path);
 }
 
-double FileSource::Lua_FileSize( const PathStringArg& Path ){
+double FileSource::Lua_FileSize( const PathStringArg& path ){
 	double size = 0;
 
-	if(this->FileSize(static_cast<const PathString&>(Path), size)){
+	ConvertAndValidatePath(path);
+
+	if(this->FileSize(path, size)){
 		throw exception("RootDir::FileSize cannot get the size of a file that does not exist");
 	}
 
 	return size;
 }
 
-luabind::object FileSource::Lua_FindFiles( lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten )
-{
+luabind::object FileSource::Lua_FindFiles( lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten ){
+
+	ConvertAndValidatePath(SearchPath);
+	ConvertAndValidatePath(NamePatten);
 
 	FileSearchResult Results;
 	this->FindFiles(SearchPath, NamePatten, Results);
@@ -47,6 +54,9 @@ luabind::object FileSource::Lua_FindFiles( lua_State* L, const PathStringArg& Se
 
 luabind::object FileSource::Lua_FindDirectorys(lua_State *L, const PathStringArg& SearchPath, const PathStringArg& NamePatten){
 
+	ConvertAndValidatePath(SearchPath);
+	ConvertAndValidatePath(NamePatten);
+
 	FileSearchResult Results;
 	int count = this->FindDirectorys(SearchPath, NamePatten, Results);
 
@@ -62,14 +72,20 @@ luabind::object FileSource::Lua_FindDirectorys(lua_State *L, const PathStringArg
 	return table;
 }
 
+void FileSource::Lua_LoadLuaFile(lua_State *L, const PathStringArg& path){
+	ConvertAndValidatePath(path);
+	this->LoadLuaFile(L, path);
+}
+
+
 luabind::scope FileSource::RegisterClass(){
 
 	return luabind::class_<FileSource>("FileSource")
-		.def_readonly("Path", &FileSource::Lua_get_Path)
+		//.def_readonly("Path", &FileSource::Lua_get_Path)
 		.def("FileExists", &FileSource::Lua_FileExists)
 		.def("FileSize", &FileSource::Lua_FileSize)
 		.def("DateModifed", &FileSource::Lua_GetModifedTime)
 		.def("FindDirectorys", &FileSource::Lua_FindDirectorys)
 		.def("FindFiles", &FileSource::Lua_FindFiles)
-		.def("LoadLuaFile", &FileSource::LoadLuaFile);
+		.def("LoadLuaFile", &FileSource::Lua_LoadLuaFile);
 }

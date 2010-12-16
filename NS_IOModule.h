@@ -4,30 +4,32 @@
 #include "NSRootDir.h"
 #include <boost/ptr_container/ptr_vector.hpp>
 
-
 class LuaModule{
 	public:
 		static double GetFileSize(const PathStringArg& Path);
 		static bool FileExists(const PathStringArg& Path);
 		static int GetDateModified(const PathStringArg& Path);
 
-		static luabind::object FindFiles(lua_State* L, const PathStringArg SearchPath, const PathStringArg& NamePatten);
-		static luabind::object FindDirectorys(lua_State* L, const PathStringArg SearchPath, const PathStringArg& NamePatten);
+		static luabind::object FindFiles(lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
+		static luabind::object FindDirectorys(lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
 
 		static luabind::object GetDirRootList(lua_State *L);
-		static const PathStringArg&  GetGameString();
+		static const std::string& GetGameString();
 
 		static FileSource* LuaModule::GetRootDirectory(int index);
+		
+		static int LoadLuaFile(lua_State* L, const PlatformPath& FilePath);
 
 		static void Initialize(lua_State *L);
 		std::string GetCommandLineRaw();
 
-		static PathString NSRoot, GameString, CommandLine;
+		static std::string CommandLine, GameString;
+		static PlatformPath GameStringPath;
 
 	private:
 		static void FindNSRoot();
-		static void FindDirectoryRoots();
-		static void ParseGameCommandline(PathString& CommandLine);
-
+		static void AddMainFileSources();
+		static void ParseGameCommandline(PlatformString& CommandLine);
+		
 		static boost::ptr_vector<FileSource> RootDirs;
 };

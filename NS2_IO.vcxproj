@@ -100,8 +100,10 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Nat
     <ClInclude Include="LuaErrorWrapper.h" />
     <ClInclude Include="FileSource.h" />
     <ClInclude Include="NSRootDir.h" />
+    <ClInclude Include="PathStringArg.h" />
     <ClInclude Include="PathStringConverter.h" />
     <ClInclude Include="SavedVariables.h" />
+    <ClInclude Include="SourceDirectory.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StringUtil.h" />
     <ClInclude Include="targetver.h" />
@@ -117,6 +119,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Nat
     <ClCompile Include="LuaErrorWrapper.cpp" />
     <ClCompile Include="FileSource.cpp" />
     <ClCompile Include="NSRootDir.cpp" />
+    <ClCompile Include="PathStringArg.cpp" />
     <ClCompile Include="SavedVariables.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

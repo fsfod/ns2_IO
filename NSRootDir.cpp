@@ -1,56 +1,63 @@
 #include "StdAfx.h"
-#include "boost/filesystem.hpp"
 #include "NSRootDir.h"
+#include "NS_IOModule.h"
 #include "StringUtil.h"
 
+extern PlatformPath NSRootPath;
 
 using namespace std;
-namespace bfs = boost::filesystem ;
+
+namespace boostfs = boost::filesystem ;
+
 
  
-void NSRootDir::SetupPathStrings(const PathString& nsroot, const PathString& path){
-	size_t PathLength = path.length()+nsroot.size()+1;
+DirectoryFileSource::DirectoryFileSource(char* dirName){
 
-	RealPath.reserve(PathLength);
-	RealPath = nsroot;
-	RealPath.append(path);
-	RealPath.push_back('/');
+#if defined(UNICODE)
+	wstring DirectoryName;
+	UTF8ToWString(dirName, DirectoryName);
 
-	GameFileSystemPath.push_back('/');
-	GameFileSystemPath.append(path);
-	GameFileSystemPath.push_back('/');
+	RealPath = NSRootPath/DirectoryName;
+#else
+	SetupPathStrings(nsroot, PathString(path));
+#endif // UINCODE
+
+	GameFileSystemPath = dirName;
+
+	DirectoryName.insert(0, 1, '/');
+	DirectoryName.push_back('/');
 }
 
-bool NSRootDir::FileExists(const PathString& FilePath){
-	//PathString fullpath = RealPath+FilePath;
-
-//	int result = GetFileAttributes(FilePath.c_str());
-
-	return bfs::exists(RealPath+FilePath);//result != INVALID_FILE_ATTRIBUTES;
+DirectoryFileSource::DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath)
+ :GameFileSystemPath(GamePath), RealPath(DirectoryPath){
 }
 
-bool NSRootDir::FileSize(const PathString& FilePath, double& Filesize){
-	PathString fullpath = RealPath+FilePath;
+bool DirectoryFileSource::FileExists(const PathStringArg& FilePath){
+	return boostfs::exists(FilePath.CreatePath(RealPath));
+}
 
-	if(!bfs::exists(fullpath)){
+bool DirectoryFileSource::FileSize(const PathStringArg& path, double& Filesize ){
+	auto fullpath = path.CreatePath(RealPath);
+
+	if(!boostfs::exists(fullpath)){
 		return false;
 	}else{
-		Filesize = bfs::file_size(fullpath);
+		Filesize = boostfs::file_size(fullpath);
 	 return true;
 	}
 }
 
-bool NSRootDir::DirectoryExists(const PathString& DirectoryPath){
-	PathString fullpath = RealPath+DirectoryPath;
+bool DirectoryFileSource::DirectoryExists( const PathStringArg& DirectoryPath ){
+	auto fullpath = DirectoryPath.CreatePath(RealPath);
 
 	int result = GetFileAttributes(fullpath.c_str());
 
 	return result != INVALID_FILE_ATTRIBUTES && (result&FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-int NSRootDir::FindFiles(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundFiles){
+int DirectoryFileSource::FindFiles(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundFiles){
 	
-	PathString fullpath = RealPath+SearchPath+NamePatten;
+	auto fullpath = SearchPath.CreateSearchPath(RealPath, NamePatten);
 
 	WIN32_FIND_DATAW FindData;
 	memset(&FindData, 0, sizeof(FindData));
@@ -79,9 +86,10 @@ int NSRootDir::FindFiles(const PathString& SearchPath, const PathString& NamePat
 }
 
 
-int NSRootDir::FindDirectorys(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundDirectorys){
+int DirectoryFileSource::FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys )
+{
 
-	PathString fullpath = RealPath+SearchPath+NamePatten;
+	auto fullpath = SearchPath.CreateSearchPath(RealPath, NamePatten);
 
 	WIN32_FIND_DATAW FindData;
 	memset(&FindData, 0, sizeof(FindData));
@@ -110,11 +118,11 @@ int NSRootDir::FindDirectorys(const PathString& SearchPath, const PathString& Na
 }
 
 
-bool NSRootDir::GetModifiedTime(const PathString& FilePath, int32_t& Time){
+bool DirectoryFileSource::GetModifiedTime( const PathStringArg& Path, int32_t& Time ){
 
-	PathString fullpath = RealPath+FilePath;
+	auto fullpath = Path.CreatePath(RealPath);
 
-#ifdef UnicodePathString
+#ifdef UNICODE
 	struct _stat32 FileInfo;
 
 	int result = _wstat(fullpath.c_str(), &FileInfo);
@@ -133,29 +141,22 @@ bool NSRootDir::GetModifiedTime(const PathString& FilePath, int32_t& Time){
 	return true;
 }
 
-void NSRootDir::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
+void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePath ){
 
-#ifdef UnicodePathString
-	std::string fullpath("");
+	auto path = RealPath/ConvertAndValidatePath(FilePath);
 
-	WStringToUTF8STLString(RealPath+FilePath, fullpath);
-#else
-	std::string fullpath = RealPath+FilePath;
-#endif
-
-
-	//FIXME need to handle unicode paths
-	int LoadResult = luaL_loadfile(L, fullpath.c_str());
+	LuaModule::LoadLuaFile(L,path);
 
 	//loadfile should of pushed either a function or an error message on to the stack leave it there as the return value
 	return;
 }
+
 
 ////////////////////////////////////////////////////////////////////
 ////////////////////        LUA Wrappers        ////////////////////
 ////////////////////////////////////////////////////////////////////
 
 
-const PathStringArg&  NSRootDir::get_Path(){
-	return reinterpret_cast<const PathStringArg&>(GameFileSystemPath);
+const string& DirectoryFileSource::get_Path(){
+	return GameFileSystemPath;
 }

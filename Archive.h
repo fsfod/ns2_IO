@@ -2,6 +2,7 @@
 #include "LuaErrorWrapper.h"
 #include "StringUtil.h"
 #include "FileSource.h"
+#include "SourceDirectory.h"
 
 #pragma once
 
@@ -9,28 +10,7 @@ class C7ZipLibrary;
 struct IInArchive;
 
 
-template <class NameStringType, class FileRecord> class SourceDirectory{
 
-typedef typename SourceDirectory<NameStringType, FileRecord> SelfType;
-
-public:
-	typedef typename std::hash_map<NameStringType, FileRecord>::value_type FileNode;
-	typedef typename std::hash_map<NameStringType, SelfType>::value_type DirectoryNode;
-
-	void FindFiles(PathString Patten){
-
-		BOOST_FOREACH(const FileNode& file, Files){
-			file.first.find_last_of(Patten);
-
-			PathMatchSpecEx(file.first.c_str(), Patten.c_str(), PMSF_NORMAL);
-		}
-	}
-
-protected:
-	SelfType* Parent;
-	std::hash_map<NameStringType, FileRecord> Files;
-	std::hash_map<NameStringType, SelfType> Directorys;
-};
 
 struct FileEntry{
 	int FileIndex;
@@ -44,31 +24,36 @@ struct FileEntry{
 	}
 };
 
-class Archive : public FileSource{
+class Archive : public FileSource, SourceDirectory<FileEntry>{
 
 public:
 	Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* Reader);
 	~Archive();
 
-	bool FileExists(const PathString& path);
-	bool DirectoryExists(const PathString& path);
-	int FindFiles(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundFiles);
-	int FindDirectorys(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundDirectorys);
-	bool FileSize(const PathString& path, double& Filesize);
-	bool GetModifiedTime(const PathString& Path, int32_t& Time);
+	bool FileExists(const PathStringArg& path);
+	bool DirectoryExists(const PathStringArg& path);
+	int FindFiles(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundFiles);
+	int FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys);
+	bool FileSize(const PathStringArg& path, double& Filesize);
+	bool GetModifiedTime(const PathStringArg& Path, int32_t& Time);
 
 	// Called directly by Lua
 	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
 
-	const PathStringArg& get_Path(){return static_cast<const PathStringArg&>(FileSystemPath);}
+	const std::string& get_Path(){return FileSystemPath;}
 
 	static luabind::scope RegisterClass();
 
 private:
-	PathString ArchivePath, FileSystemPath;
+	void AddFilesToDirectorys();
+	SelfType* CreateDirectorysForPath(const std::string& path, std::vector<int>& SlashIndexs);
+	int GetFileEntrysSize(const FileEntry& fileentry);
+
+
+	PathString FileSystemPath;
 	C7ZipLibrary* Owner;
 	IInArchive* Reader;
 
-	std::hash_map<PathString, FileEntry> Files;
-	SourceDirectory<PathString, FileEntry> Directorys;
+	std::hash_map<std::string, FileEntry> PathToFile;
+	std::hash_map<std::string, SelfType*> PathToDirectory;
 };

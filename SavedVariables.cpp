@@ -5,7 +5,7 @@
 namespace boostfs = boost::filesystem;
 
 
-PathString SavedVariables::SavedVariablesFolderPath(_T(""));
+PlatformPath SavedVariables::SavedVariablesFolderPath(_T(""));
 
 using namespace std;
 
@@ -40,7 +40,7 @@ void SavedVariables::Init(lua_State* L, const string& fname, luabind::table<luab
 
 	UTF8StringToWString(fname, FileName);
 
-	if(FileName.find_first_of(_T(".\\/")) != string::npos){
+	if(FileName.find_first_of(InvalidFileNameChars) != string::npos){
 			throw exception("the SavedVariables name cannot contain any of these characters  \\ \" . ");
 	}
 
@@ -80,15 +80,14 @@ string DumpStack(lua_State *L){
 }
 
 void SavedVariables::Load(lua_State *L){
-	PathString FilePath = SavedVariablesFolderPath+FileName;
+	auto FilePath = boostfs::absolute(FileName, SavedVariablesFolderPath);
 
-#ifdef UNICODE
-	string fullPath;
-	WStringToUTF8STLString(FilePath, fullPath);
-	//SavedVariableFile = _wfopen(FilePath.c_str(),	_T("w"));
-#else
-	//	SavedVariableFile = fopen(FilePath.c_str(),	"w");
-#endif
+	//just silently return if nothing has been saved before. The container table should have default values set in it by the owner
+	if(!boostfs::exists(FilePath)){
+		return;
+	}
+
+
 	int ContainerIndex = LUA_GLOBALSINDEX;
 
 	//add these 2 early to the stack so we don't have to deal with fun shifting stack indexs
@@ -101,8 +100,9 @@ void SavedVariables::Load(lua_State *L){
 
 	int EnvTable = lua_gettop(L); 
 
+
 	//adapted from http://danwellman.com/vws.html
-	if(luaL_loadfile(L, fullPath.c_str()) == 0){//FIXME need to handle unicode paths
+	if(LuaModule::LoadLuaFile(L,FilePath) == 0){//FIXME need to handle unicode paths
 		//Set the chunk's environment to a table
 
 		//import the constructors for Vector and Angles
@@ -142,8 +142,10 @@ void SavedVariables::Load(lua_State *L){
 
 		 return;
 		}
-
-		lua_error(L);
+		
+		//FIXME throw an exception containing the error messing instead of blowing up the SEH chain with lua_error setjmp
+		//lua_error(L);
+		_ASSERT(false);
 	}
 }
 
@@ -209,7 +211,7 @@ int SavedVariables::Save(lua_State *L){
 
 	CheckCreateSVDir();
 
-	PathString FilePath = static_cast<PathString>(SavedVariablesFolderPath+FileName);
+	auto FilePath = SavedVariablesFolderPath/FileName;
 
 #ifdef UNICODE
 	SavedVariableFile = _wfopen(FilePath.c_str(),	_T("w"));
@@ -221,7 +223,6 @@ int SavedVariables::Save(lua_State *L){
 	if(SavedVariableFile == NULL){
 		throw exception("failed to open SavedVariable file for writing");
 	}
-
 
 	int ContainerIndex = LUA_GLOBALSINDEX;
 
@@ -235,11 +236,45 @@ int SavedVariables::Save(lua_State *L){
 
 		int CurrentStackPos = lua_gettop(L);
 
-		if(lua_istable(L, -1)){
-			fprintf(SavedVariableFile, "%s = {\n", VariableName.c_str());
-				SaveTable(L);
-			fprintf(SavedVariableFile, "}\n");
+		fprintf(SavedVariableFile, "%s = ", VariableName.c_str());
+
+		switch(lua_type(L, -1)){
+			case LUA_TNUMBER:
+				fprintf(SavedVariableFile, "%Lg\n", lua_tonumber(L, -1));
+			break;
+
+			case LUA_TSTRING:
+				fprintf(SavedVariableFile, "\"%s\"\n", lua_tostring(L, -1));
+			break;
+
+			case LUA_TBOOLEAN:
+				fprintf(SavedVariableFile, lua_toboolean(L, -1) ? "true\n" : "false\n");
+			break;
+
+			case LUA_TTABLE:
+				fprintf(SavedVariableFile, "{\n");
+					SaveTable(L);
+				fprintf(SavedVariableFile, "}\n");
+			break;
+
+			case LUA_TUSERDATA:
+				if(SerializeCustomType(L, -1)){
+					fprintf(SavedVariableFile, "\n");
+				}else{
+					fprintf(SavedVariableFile, "nil --[[Skipping userdata thats not a Vector or Angles]]\n");
+				}
+			break;
+
+			case LUA_TNIL:
+				//don't write nils out
+			break;
+
+			default:
+				fprintf(SavedVariableFile, "nil --Skipping a %s value that cannot be serialized]]\n", lua_typename(L, lua_type(L, -1)));
+			break;
 		}
+
+		//WriteValue(L);
 
 		_ASSERT_EXPR(lua_gettop(L) == CurrentStackPos, _T("Stack Position is not the position before the call to SaveTable"));
 
@@ -293,11 +328,7 @@ void SavedVariables::SaveTable(lua_State *L){
 
 		switch(lua_type(L, -1)){
 			case LUA_TNUMBER:
-				{
-				double num = lua_tonumber(L, -1);
-				
-					fprintf(SavedVariableFile, "%Lg,\n", num);
-				};
+				fprintf(SavedVariableFile, "%Lg,\n", lua_tonumber(L, -1));
 			break;
 
 			case LUA_TSTRING:
@@ -328,6 +359,7 @@ void SavedVariables::SaveTable(lua_State *L){
 
 	IndentString.pop_back();
 }
+
 /*
 bool SavedVariables::EscapeString(const char* s, int length){
 
@@ -406,6 +438,8 @@ void SavedVariables::SetExitAutoSaving(bool AutoSave){
 	ExitAutoSave = AutoSave;
 }
 
+extern PlatformPath NSRootPath;
+
 void SavedVariables::RegisterObjects(lua_State *L){
 	
 	using namespace luabind;
@@ -425,5 +459,5 @@ void SavedVariables::RegisterObjects(lua_State *L){
 	lua_pop(L, 1);
 	*/
 
-	SavedVariablesFolderPath = LuaModule::NSRoot+_T("SavedVariables/");
+	SavedVariablesFolderPath = NSRootPath/"SavedVariables/";
 }

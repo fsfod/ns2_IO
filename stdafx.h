@@ -84,21 +84,37 @@ extern "C" {
 #include <map>
 #include <hash_map>
 #include <boost/foreach.hpp>
-#include "boost/filesystem.hpp"
+
+#define BOOST_FILESYSTEM_VERSION 3
+#define BOOST_FILESYSTEM_NO_DEPRECATED
+
+#include <boost/filesystem.hpp>
+#include <boost/range/algorithm.hpp>
+
+namespace boostfs = boost::filesystem;
 
 #if defined(UNICODE)
 	#define UnicodePathString
-
-	typedef	std::wstring PathString;
+	typedef boostfs::path PlatformPath;
+	typedef	std::string PathString;
 #else
+	typedef boostfs::path PlatformPath;
 	typedef	std::string PathString;
 #endif
 
-//see PathStringCover.h for all the magic of PathStringArg
+using boost::replace;
+
+
+//see PathStringConverter.h for all the magic of PathStringArg
 //and also http://www.rasterbar.com/products/luabind/docs.html#adding-converters-for-user-defined-types
-struct PathStringArg : public PathString{};
 
 typedef PathString::value_type PathChar;
+
+typedef std::wstring PlatformString;
+
+#include "PathStringArg.h"
+
+
 
 #define LUABIND_NO_RTTI
 #include <luabind/luabind.hpp>

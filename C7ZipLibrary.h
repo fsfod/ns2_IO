@@ -24,7 +24,7 @@ namespace NWindows{
 class C7ZipLibrary{
 
 public:
-	static C7ZipLibrary* Init(PathString& LibaryPath);
+	static C7ZipLibrary* Init(PlatformPath& LibaryPath);
 
 	C7ZipLibrary(void* libaryHandle);
 	~C7ZipLibrary();
@@ -33,7 +33,7 @@ public:
 	long ReadStringProp(uint32_t index, uint32_t propID, std::wstring &res);
 	long ReadBoolProp(uint32_t index, uint32_t propID, bool &res);
 
-	FileSource* OpenArchive(PathString& ArchivePath);
+	FileSource* OpenArchive(const PlatformPath& ArchivePath);
 
 	GetMethodPropertyFunc GetMethodProperty;
 	GetNumberOfMethodsFunc GetNumberOfMethods;

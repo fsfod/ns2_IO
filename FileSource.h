@@ -7,20 +7,21 @@ class FileSource;
 typedef std::tr1::unordered_map<std::string,FileSource*> FileSearchResult;
 
 class FileSource :luabind::wrap_base{
-public:
 
+public:
 	virtual ~FileSource(){}
 
-	virtual bool FileExists(const PathString& path) = 0;
-	virtual bool DirectoryExists(const PathString& path) = 0;
-	virtual int FindFiles(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundFiles) = 0;
-	virtual int FindDirectorys(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundDirectorys) = 0;
-	virtual bool FileSize(const PathString& path, double& Filesize) = 0;
-	virtual bool GetModifiedTime(const PathString& Path, int32_t& Time) = 0;
+	virtual bool FileExists(const PathStringArg& path) = 0;
+	virtual bool DirectoryExists(const PathStringArg& path) = 0;
+	virtual int FindFiles(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundFiles) = 0;
+	virtual int FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys) = 0;
+	virtual bool FileSize(const PathStringArg& path, double& Filesize) = 0;
+	virtual bool GetModifiedTime(const PathStringArg& Path, int32_t& Time) = 0;
+	virtual void LoadLuaFile(lua_State* L, const PathStringArg& path) = 0;
 
 	// Called directly by Lua
-	virtual void LoadLuaFile(lua_State* L, const PathStringArg& FilePath) = 0;
-	virtual const PathStringArg& get_Path() = 0;
+	//virtual void LoadLuaFile(lua_State* L, const PathStringArg& FilePath) = 0;
+	virtual const std::string& get_Path() = 0;
 
 	static luabind::scope RegisterClass();
 
@@ -30,8 +31,5 @@ private:
 	double Lua_FileSize(const PathStringArg& Path);
 	luabind::object Lua_FindDirectorys(lua_State *L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
 	luabind::object Lua_FindFiles(lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
-
-	const PathStringArg& Lua_get_Path(){
-		return get_Path();
-	}
+	void Lua_LoadLuaFile(lua_State *L, const PathStringArg& path);
 };

@@ -5,35 +5,27 @@
 
 #pragma once
 
-class NSRootDir;
+class DirectoryFileSource;
 
 
-class NSRootDir : public FileSource{
+class DirectoryFileSource : public FileSource{
 
 public:
-		NSRootDir(){}
-		NSRootDir(PathString nsroot, char* path){
-#if defined(UNICODE)
-		std::wstring wpath;
-		UTF8ToWString(path, wpath);
+	DirectoryFileSource(){}
+	DirectoryFileSource(char* path);
 
-		SetupPathStrings(nsroot, wpath);
-#else
-		SetupPathStrings(nsroot, PathString(path));
-#endif // UINCODE
-	}
+	DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath);
+	~DirectoryFileSource(){}
 
-	NSRootDir(PathString nsroot, PathString path){SetupPathStrings(nsroot, path);}
-	~NSRootDir(){}
+	bool FileExists(const PathStringArg& path);
+	bool DirectoryExists(const PathStringArg& path);
+	int FindFiles(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundFiles);
+	int FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys);
+	bool FileSize(const PathStringArg& path, double& Filesize);
+	bool GetModifiedTime(const PathStringArg& Path, int32_t& Time);
 
-	bool FileExists(const PathString& path);
-	bool DirectoryExists(const PathString& path);
-	int FindFiles(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundFiles);
-	int FindDirectorys(const PathString& SearchPath, const PathString& NamePatten, FileSearchResult& FoundDirectorys);
-	bool FileSize(const PathString& path, double& Filesize);
-	bool GetModifiedTime(const PathString& Path, int32_t& Time);
 
-	const PathStringArg& get_Path();
+	const std::string& get_Path();
 
 	PathString& GetPath(){
 		return GameFileSystemPath;
@@ -44,6 +36,7 @@ private:
 	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
 	
 
-	PathString GameFileSystemPath, RealPath;
+	PathString GameFileSystemPath;
+	PlatformPath RealPath;
 };
 

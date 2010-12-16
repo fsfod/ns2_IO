@@ -4,13 +4,12 @@
 #include "SavedVariables.h"
 #include <luabind/tag_function.hpp>
 #include "PathStringConverter.h"
-#include "C7ZipLibrary.h"
 
-#include "MinWindows.h"
-#undef NOKERNEL
-#include <windows.h>
+
 
 HMODULE LibaryHandle = 0;
+
+
 
 BOOL APIENTRY DllMain(HMODULE hModule,DWORD  ul_reason_for_call, LPVOID lpReserved){
 
@@ -27,10 +26,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,DWORD  ul_reason_for_call, LPVOID lpReserv
 }
 
 extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
-
-
-	C7ZipLibrary* SevenZip = C7ZipLibrary::Init(PathString(L"7z.dll"));
-
+	
 	LuaModule::Initialize(L);
 
 	using namespace luabind;
