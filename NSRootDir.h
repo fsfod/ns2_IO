@@ -15,7 +15,7 @@ public:
 	DirectoryFileSource(char* path);
 
 	DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath);
-	~DirectoryFileSource(){}
+	virtual ~DirectoryFileSource(){}
 
 	bool FileExists(const PathStringArg& path);
 	bool DirectoryExists(const PathStringArg& path);
@@ -30,6 +30,11 @@ public:
 	PathString& GetPath(){
 		return GameFileSystemPath;
 	}
+
+	const PlatformPath& GetFileSystemPath(){
+		return RealPath;
+	}
+
 
 private:
 	void SetupPathStrings(const PathString& nsroot, const PathString& path);

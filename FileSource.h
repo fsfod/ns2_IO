@@ -19,8 +19,6 @@ public:
 	virtual bool GetModifiedTime(const PathStringArg& Path, int32_t& Time) = 0;
 	virtual void LoadLuaFile(lua_State* L, const PathStringArg& path) = 0;
 
-	// Called directly by Lua
-	//virtual void LoadLuaFile(lua_State* L, const PathStringArg& FilePath) = 0;
 	virtual const std::string& get_Path() = 0;
 
 	static luabind::scope RegisterClass();

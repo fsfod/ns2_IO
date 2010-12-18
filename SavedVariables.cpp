@@ -102,7 +102,7 @@ void SavedVariables::Load(lua_State *L){
 
 
 	//adapted from http://danwellman.com/vws.html
-	if(LuaModule::LoadLuaFile(L,FilePath) == 0){//FIXME need to handle unicode paths
+	if(LuaModule::LoadLuaFile(L,FilePath, "") == 0){
 		//Set the chunk's environment to a table
 
 		//import the constructors for Vector and Angles
@@ -136,7 +136,7 @@ void SavedVariables::Load(lua_State *L){
 			}
 			
 			if(ContainerTable.is_valid()) lua_pop(L, 1);
-				
+
 			//Pop environment table
 			lua_pop(L, 1);
 

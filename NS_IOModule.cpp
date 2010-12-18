@@ -150,8 +150,6 @@ void LuaModule::ParseGameCommandline(PlatformString& CommandLine )
 
 
 		if(!IsZip){
-			
-
 			RootDirs.push_back(new DirectoryFileSource(GameStringPath, ""));
 		}else{
 			RootDirs.push_back(SevenZip->OpenArchive(GameStringPath));
@@ -238,7 +236,7 @@ luabind::object LuaModule::FindFiles( lua_State* L, const PathStringArg& SearchP
 	auto it = Results.begin();
 
 	for(uint32_t i = 0; i < Results.size() ; i++,it++){
-		table[i+1] =  it->first;
+		table[it->second] =  it->first;
 	}
 
 	return table;
@@ -282,6 +280,43 @@ luabind::object LuaModule::GetDirRootList(lua_State *L) {
 	return table;
 }
 
+FileSource* LuaModule::OpenArchive2(lua_State* L, const PathStringArg& Path){
+	return OpenArchive(L, NULL, Path);
+}
+
+FileSource* LuaModule::OpenArchive(lua_State* L, FileSource* ContainingSource, const PathStringArg& Path){
+
+	if(SevenZip == NULL){
+		throw exception("Cannot open archive because the 7zip library is not loaded");
+	}
+
+	auto NativePath = ConvertAndValidatePath(Path);
+
+	if(ContainingSource == NULL){
+		BOOST_FOREACH(FileSource& source, RootDirs){
+			if(source.FileExists(Path)) ContainingSource = &source;
+		}
+
+		if(ContainingSource == NULL){
+			throw exception("Cannot find Archive to open");
+		}
+	}
+
+	DirectoryFileSource *dirsource = dynamic_cast<DirectoryFileSource *>(ContainingSource);
+	
+	if (NULL == dirsource){
+		throw exception("Cannot open a archive from a non DirectoryFileSource");
+	}
+
+	auto FullPath = dirsource->GetFileSystemPath()/NativePath;
+
+	if(!boostfs::exists(FullPath)){
+		throw exception("Cannot find Archive to open");
+	}
+
+	return SevenZip->OpenArchive(FullPath);
+}
+
 FileSource* LuaModule::GetRootDirectory(int index) {
 	
 	if(index < 0 || (size_t)index >= RootDirs.size()) {
@@ -295,16 +330,15 @@ const string& LuaModule::GetGameString(){
 	return GameString;
 }
 
-int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath )
+int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const char* chunkname )
 {
 
 	using namespace boost::iostreams;
 
-
 	if(!boostfs::exists(FilePath)){
 		throw exception("lua file does not exist");
 	}
-	 
+
 	boost::iostreams::mapped_file_source MappedFile;
 
 	/*

@@ -147,8 +147,6 @@ bool C7ZipLibrary::LoadFormats(){
 	return true;
 }
 
-
-
 FileSource* C7ZipLibrary::OpenArchive( const PlatformPath& ArchivePath){
 
 	auto ext = ArchivePath.extension();

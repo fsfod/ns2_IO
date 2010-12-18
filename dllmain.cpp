@@ -3,6 +3,8 @@
 #include "NS_IOModule.h"
 #include "SavedVariables.h"
 #include <luabind/tag_function.hpp>
+#include <luabind/adopt_policy.hpp>
+
 #include "PathStringConverter.h"
 
 
@@ -43,6 +45,9 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		def("GetGameString",  &LuaModule::GetGameString),
 		def("GetDirRootList",  &LuaModule::GetDirRootList),
 		def("GetCommandLineRaw", &LuaModule::GetCommandLineRaw),
+		def("OpenArchive", &LuaModule::OpenArchive, adopt(result)),
+		def("OpenArchive", &LuaModule::OpenArchive2, adopt(result)),
+
 
 
 

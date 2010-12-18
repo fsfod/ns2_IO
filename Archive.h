@@ -28,7 +28,7 @@ class Archive : public FileSource, SourceDirectory<FileEntry>{
 
 public:
 	Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* Reader);
-	~Archive();
+	virtual ~Archive();
 
 	bool FileExists(const PathStringArg& path);
 	bool DirectoryExists(const PathStringArg& path);

@@ -26,8 +26,6 @@ Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader
 		NWindows::NCOM::CPropVariant prop;
 
 		if (Reader->GetProperty(i, kpidPath, &prop) != S_OK || prop.vt != VT_BSTR)continue;
-
-		//just convert to uft8 early since it will make things easier when handling lua strings
 		string& itempath = NormalizedPath(prop.bstrVal);
 
 		if (Reader->GetProperty(i, kpidIsDir, &prop) != S_OK)continue;
@@ -96,18 +94,11 @@ Archive::SelfType* Archive::CreateDirectorysForPath(const std::string& path, vec
 		if(SlashIndexs.back() > 0 || CreatedCount != 1){
 			auto CurrentDir = Directory->Parent;
 
-			int PrevSlash = abs(SlashIndexs[SlashIndexs.size()-1]);
-
 			for(int i = SlashIndexs.size()-2; i != 0 ; --i){
 				
 				if(SlashIndexs[i] < 0){
-					//remember its negative 
-					int length = PrevSlash+SlashIndexs[i];
-
-					string p = path.substr(0, -SlashIndexs[i]);
-					PathToDirectory[p] = CurrentDir;
+					PathToDirectory[path.substr(0, -SlashIndexs[i])] = CurrentDir;
 				}
-				PrevSlash = abs(SlashIndexs[i]);
 				CurrentDir = CurrentDir->Parent;
 			}
 		}
@@ -412,26 +403,25 @@ public:
 
 			case NArchive::NExtract::NOperationResult::kUnSupportedMethod:
 				throw exception("error extracting file unsupported compressing method used on file");
-			break;
 
 			case NArchive::NExtract::NOperationResult::kCRCError:
 				throw exception("error extracting file crc mismatch");
-			break;
+			
 
 			case NArchive::NExtract::NOperationResult::kDataError:
 				throw exception("error extracting file unknown data error");
-			break;
 		}
 
 		return stream.LoadChunk(L);
 	}
 
+	//we delay throwing an error from this result till LoadLuaChunk is called
 	STDMETHOD(SetOperationResult)(Int32 OperationResult){
 		_ASSERT(Result == -1);
 		Result = OperationResult;
 	 return S_OK;
 	}
-	
+
 	SimpleOutSteam stream;
 
 private:
