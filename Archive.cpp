@@ -16,66 +16,24 @@ using namespace std;
 Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader){
 
 	Reader = reader;
+	ArchivePath = archivepath;
+	ArchiveName = ArchivePath.filename().string();
 
 	uint32_t itemcount;
 	Reader->GetNumberOfItems(&itemcount);
 	
-	vector<string> dirlist;
-
 	for(uint32_t i = 0; i < itemcount ; i++){
 		NWindows::NCOM::CPropVariant prop;
+		
+		if(Reader->GetProperty(i, kpidIsDir, &prop) != S_OK || prop.vt != VT_BOOL || prop.boolVal)continue;
 
-		if (Reader->GetProperty(i, kpidPath, &prop) != S_OK || prop.vt != VT_BSTR)continue;
+		if(Reader->GetProperty(i, kpidPath, &prop) != S_OK || prop.vt != VT_BSTR)continue;
 		string& itempath = NormalizedPath(prop.bstrVal);
 
-		if (Reader->GetProperty(i, kpidIsDir, &prop) != S_OK)continue;
 
-		bool isDir = prop.vt == VT_BOOL ? prop.boolVal : false;
-
-		if(!isDir){
-			PathToFile[itempath] = FileEntry(i);
-		}else{
-			dirlist.push_back(itempath);
-		}
+		PathToFile[itempath] = FileEntry(i);
 	}
 
-	vector<int> SlashIndexs;
-
-	/*
-	BOOST_FOREACH(string& dirpath, dirlist){
-		
-		int index = 0;
-
-		while((index = dirpath.find('/', index+1)) != PathString::npos){
-			SlashIndexs.push_back(index);
-		}
-
-		string ParentPath;
-
-		int ParentEnd;
-
-		if(SlashIndexs.size() != 0){
-			int CreatedCount;
-			ParentEnd = SlashIndexs.back();
-			ParentPath = dirpath.substr(0, ParentEnd);
-
-			auto ParentDir = PathToDirectory[ParentPath];
-
-			if(ParentDir == NULL){
-				SlashIndexs.push_back(dirpath.size());
-				CreateDirectorysForPath(dirpath, SlashIndexs);
-			}else{
-				PathToDirectory[dirpath] = ParentDir->GetCreateDirectory(dirpath.substr(SlashIndexs.back()+1));
-			}
-
-
-		}else{
-			PathToDirectory[dirpath] = GetCreateDirectory(dirpath);
-		}
-
-		SlashIndexs.clear();
-	}
-	*/
 
 	AddFilesToDirectorys();
 }
@@ -312,7 +270,7 @@ public:
 	}
 
 	STDMETHOD(Write)(const void *data, UInt32 dataSize, UInt32 *processedSize){
-		if(Position+dataSize > Capacity){
+		if(Position+(int)dataSize > Capacity){
 			SetSize(Capacity*2);
 		}
 
@@ -327,21 +285,23 @@ public:
 	
 	STDMETHOD(SetSize)(Int64 newSize){
 		
+		_ASSERT(newSize < INT32_MAX);
+
 		if(newSize > Capacity){
 			char* old = buffer;
 
-			buffer = new char[newSize];
+			buffer = new char[(int)newSize];
 
 			if(Size != 0){
-				memcpy_s(buffer, newSize, old, Size);
+				memcpy_s(buffer, (int)newSize, old, Size);
 			}
 
-			Capacity = newSize;
+			Capacity = (int)newSize;
 
 			if(old != NULL)delete old;
 		}
 
-		Size = newSize;
+		Size = (int)newSize;
 
 		if(Position > Size){
 			Position = Size;
@@ -350,8 +310,8 @@ public:
 		return S_OK;
 	}
 
-	int LoadChunk(lua_State* L){
-		return luaL_loadbuffer(L, buffer, Position, "");
+	int LoadChunk(lua_State* L, const char* ChunkName){
+		return luaL_loadbuffer(L, buffer, Position, ChunkName);
 	}
 
 private:
@@ -396,7 +356,7 @@ public:
 		return S_OK;
 	}
 
-	int LoadLuaChunk(lua_State* L){
+	int LoadLuaChunk(lua_State* L, const char* ChunkName){
 		switch(Result){
 			case NArchive::NExtract::NOperationResult::kOK:
 			break;
@@ -412,7 +372,7 @@ public:
 				throw exception("error extracting file unknown data error");
 		}
 
-		return stream.LoadChunk(L);
+		return stream.LoadChunk(L, ChunkName);
 	}
 
 	//we delay throwing an error from this result till LoadLuaChunk is called
@@ -448,7 +408,8 @@ void Archive::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 
 	Reader->Extract(&index, 1, false, &extract);
 
-	extract.LoadLuaChunk(L);
+
+	extract.LoadLuaChunk(L, (ArchiveName+FilePath.ToString()).c_str());
 
 	//luaL_loadbuffer(L, , , "");
 

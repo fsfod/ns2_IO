@@ -50,10 +50,13 @@ private:
 	int GetFileEntrysSize(const FileEntry& fileentry);
 
 
+	PlatformPath ArchivePath;
+
 	PathString FileSystemPath;
 	C7ZipLibrary* Owner;
 	IInArchive* Reader;
 
 	std::hash_map<std::string, FileEntry> PathToFile;
 	std::hash_map<std::string, SelfType*> PathToDirectory;
+	std::string ArchiveName;
 };

@@ -7,7 +7,9 @@
 #include "PathStringConverter.h"
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/iostreams/stream.hpp>
 
 
 using namespace  std;
@@ -44,10 +46,37 @@ void LuaModule::Initialize(lua_State *L){
 
 	AddMainFileSources();
 
-	auto directorystxt = NSRootPath/"directorys.txt";
+	auto directorystxt = NSRootPath/"directories.txt";
 
 	if(boostfs::exists(directorystxt)){
-		//TODO handle directorys.txt
+		ProcessDirectoriesTXT(directorystxt);
+	}
+}
+
+void LuaModule::ProcessDirectoriesTXT(PlatformPath directorystxt){
+
+	if(boostfs::file_size(directorystxt) == 0){
+		return;
+	}
+
+	using namespace boost::iostreams;
+
+	mapped_file_source file(directorystxt.native());
+	stream<mapped_file_source> input(file);
+
+	string line;
+
+	while(getline(input, line)){
+		boost::trim(line);
+		if(line.empty())continue;
+
+		PlatformPath path = line;
+
+		if(!path.has_root_name())path = NSRootPath/path;
+
+		if(boostfs::is_directory(path)){
+			RootDirs.push_back(new DirectoryFileSource(path, ""));
+		}
 	}
 }
 
@@ -236,7 +265,7 @@ luabind::object LuaModule::FindFiles( lua_State* L, const PathStringArg& SearchP
 	auto it = Results.begin();
 
 	for(uint32_t i = 0; i < Results.size() ; i++,it++){
-		table[it->second] =  it->first;
+		table[it->first] =  it->second;
 	}
 
 	return table;
@@ -259,7 +288,7 @@ luabind::object LuaModule::FindDirectorys( lua_State* L, const PathStringArg& Se
 	auto it = Results.begin();
 
 	for(uint32_t i = 0; i < Results.size() ; i++,it++){
-		table[it->second] = it->first.c_str();
+		table[it->first] =  it->second;
 	}
 
 	return table;
@@ -271,7 +300,6 @@ luabind::object LuaModule::GetDirRootList(lua_State *L) {
 	luabind::object table = luabind::object(luabind::from_stack(L,-1));
 
 	auto it = RootDirs.begin();
-
 
 	for(uint32_t i = 0; i < RootDirs.size() ; i++,it++){
 		table[i+1] = luabind::object(L, &RootDirs[i]);
@@ -294,7 +322,10 @@ FileSource* LuaModule::OpenArchive(lua_State* L, FileSource* ContainingSource, c
 
 	if(ContainingSource == NULL){
 		BOOST_FOREACH(FileSource& source, RootDirs){
-			if(source.FileExists(Path)) ContainingSource = &source;
+			if(source.FileExists(Path)){
+				ContainingSource = &source;
+			 break;
+			}
 		}
 
 		if(ContainingSource == NULL){
@@ -357,7 +388,7 @@ int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const ch
 	//windows gives us an error if we try to map a 0 byte file
 	//just fake loading a empty file
 	if(boostfs::file_size(FilePath) == 0){
-		return luaL_loadbuffer(L, " ", 1, "");
+		return luaL_loadbuffer(L, " ", 1, FilePath.string().c_str());
 	}
 
 	MappedFile.open(FilePath.wstring());
@@ -365,7 +396,7 @@ int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const ch
 	int LoadResult;
 
 	if(MappedFile.is_open()){
-		 LoadResult = luaL_loadbuffer(L, MappedFile.data(), MappedFile.size(), "");
+		 LoadResult = luaL_loadbuffer(L, MappedFile.data(), MappedFile.size(), FilePath.string().c_str());
 	}else{
 		throw exception("Failed to open the lua file for reading");
 	}

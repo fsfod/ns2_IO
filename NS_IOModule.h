@@ -34,7 +34,8 @@ class LuaModule{
 		static void FindNSRoot();
 		static void AddMainFileSources();
 		static void ParseGameCommandline(PlatformString& CommandLine);
-		
+		static void ProcessDirectoriesTXT(PlatformPath directorystxt);
+
 
 		static boost::ptr_vector<FileSource> RootDirs;
 };

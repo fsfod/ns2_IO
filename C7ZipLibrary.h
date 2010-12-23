@@ -45,7 +45,7 @@ public:
 
 private:
 	void* LibaryHandle;
-	std::map<std::wstring,C7ZipFormatInfo*> ArchiveFormats;
+	std::map<std::wstring,C7ZipFormatInfo> ArchiveFormats;
 
 	//const C7ZipObjectPtrArray & GetInternalObjectsArray() { return m_InternalObjectsArray; }
 	bool LoadFormats();

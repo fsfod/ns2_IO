@@ -133,14 +133,14 @@ bool C7ZipLibrary::LoadFormats(){
 			ReadBoolProp(i, NArchive::kKeepName, keepName);
 		}
 		
-		C7ZipFormatInfo * pInfo = new C7ZipFormatInfo();
-		pInfo->m_Name = name;
-		pInfo->m_KeepName = keepName;
-		pInfo->m_ClassID = classID;
-		pInfo->m_UpdateEnabled = updateEnabled;
-	
-	
-		pInfo->FormatIndex = i;
+		C7ZipFormatInfo  pInfo;
+
+		pInfo.m_Name = name;
+		pInfo.m_KeepName = keepName;
+		pInfo.m_ClassID = classID;
+		pInfo.m_UpdateEnabled = updateEnabled;
+		pInfo.FormatIndex = i;
+
 		ArchiveFormats[*supportedFormat] = pInfo;
 	}
 
@@ -161,21 +161,21 @@ FileSource* C7ZipLibrary::OpenArchive( const PlatformPath& ArchivePath){
 		throw exception("Unknown archive file extension");
 	}
 
-	C7ZipFormatInfo * format = (*reader).second;
+	const C7ZipFormatInfo& format = (*reader).second;
 
 	IInArchive* archive;
-	CreateObject(&format->m_ClassID, &IID_IInArchive, (void **)&archive);
+	CreateObject(&format.m_ClassID, &IID_IInArchive, (void **)&archive);
 
 	CInFileStream* inStream = new CInFileStream();
 	 
 	if(!inStream->Open(ArchivePath.c_str())){
 		delete inStream;
-		throw exception("Failed to open archive");
+		throw exception("Failed to open archive for reading");
 	}
 
 
 	if(archive->Open(inStream, 0, NULL) != S_OK){
-		throw exception("Archive is either invalid or 7zip was unable y");
+		throw exception("Archive is either corrupt or 7zip was unable ");
 	}
 
 	return new Archive(this, ArchivePath.string(), archive);

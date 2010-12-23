@@ -73,7 +73,7 @@ public:
 		SelfType* CurrentDir = this;
 
 
-		for(int i = 0; i < SlashIndexs.size() &&  SlashIndexs[i] < path.length()+1 ; i++){
+		for(int i = 0; i < (int)SlashIndexs.size() &&  SlashIndexs[i] < (int)path.length()+1 ; i++){
 			StringType DirName;
 
 			if(i == 0){

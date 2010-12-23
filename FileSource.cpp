@@ -46,7 +46,7 @@ luabind::object FileSource::Lua_FindFiles( lua_State* L, const PathStringArg& Se
 	auto it = Results.begin();
 
 	for(uint32_t i = 0; i < Results.size() ; i++,it++){
-		table[i+1] =  it->first;
+		table[i+1] =  it->second;
 	}
 
 	return table;
@@ -66,7 +66,7 @@ luabind::object FileSource::Lua_FindDirectorys(lua_State *L, const PathStringArg
 	auto it = Results.begin();
 
 	for(int i = 0; i < count ; i++,it++){
-		table[i+1] = it->first.c_str();
+		table[i+1] =  it->second;
 	}
 
 	return table;
