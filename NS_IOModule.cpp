@@ -73,10 +73,10 @@ void LuaModule::ProcessDirectoriesTXT(PlatformPath directorystxt){
 		PlatformPath path = line;
 
 		if(!path.has_root_name())path = NSRootPath/path;
-
-		if(boostfs::is_directory(path)){
-			RootDirs.push_back(new DirectoryFileSource(path, ""));
-		}
+			if(boostfs::is_directory(path)){
+				RootDirs.push_back(new DirectoryFileSource(path/"ns2", ""));
+				RootDirs.push_back(new DirectoryFileSource(path/"core", ""));
+			}
 	}
 }
 
