@@ -175,7 +175,7 @@ FileSource* C7ZipLibrary::OpenArchive( const PlatformPath& ArchivePath){
 
 
 	if(archive->Open(inStream, 0, NULL) != S_OK){
-		throw exception("Archive is either corrupt or 7zip was unable ");
+		throw exception("Archive is either corrupt or 7zip was unable parse the archive header");
 	}
 
 	return new Archive(this, ArchivePath.string(), archive);

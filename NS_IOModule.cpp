@@ -22,34 +22,77 @@ string LuaModule::CommandLine("");
 string LuaModule::GameString("");
 PlatformPath LuaModule::GameStringPath(_T(""));;
 boost::ptr_vector<FileSource> LuaModule::RootDirs(0);
+
+luabind::object LuaModule::MessageFunc;
+bool LuaModule::GameIsZip = false;
 //{
 
 //PathMatchSpecEx for matching files names on windows
 //fnmatch on linux will do the same directorys 
 
-
 void LuaModule::Initialize(lua_State *L){
 	
+	lua_getfield(L, LUA_GLOBALSINDEX, "Shared");
+	if(lua_type(L, -1) != LUA_TNIL){
+		lua_getfield(L, -1, "Message");
+	
+		if(lua_type(L, -1) != LUA_TNIL){
+			MessageFunc = luabind::object(luabind::from_stack(L, -1));
+		}
+		lua_pop(L, 1);
+	}
+	lua_pop(L, 1);
+
 	FindNSRoot();
 
-	auto ServerZipPath = NSRootPath/"7z.dll";
+	//if -game is set 
+	ProcessCommandline();
+
+	auto ServerZipPath = (GameStringPath.empty() ? NSRootPath : GameStringPath) /"7z.dll";
 
 	if(boostfs::exists(ServerZipPath)){
 		try{
 			SevenZip = C7ZipLibrary::Init(ServerZipPath);
-
-			//SevenZip->OpenArchive(PathString(_T("I:\\ns2stuff\\NS2_IO\\stuff.zip")));
 		}catch(exception e){
-			
+
+		 string msg = "error while loading 7zip library: ";
+			msg += e.what();
+			PrintMessage(L, msg.c_str());
+
+			SevenZip = NULL;
 		}
+
+		if(SevenZip != NULL && GameIsZip){
+			try{
+				RootDirs.push_back(SevenZip->OpenArchive(GameStringPath));
+			}catch(exception e){
+				string msg = "error while opening archive set with -game:";
+				msg += e.what();
+				PrintMessage(L, msg.c_str());
+			}
+		}
+	}else{
+		PrintMessage(L, "cannot find 7zip.dll so archive support is disabled");
 	}
 
-	AddMainFileSources();
+	if(SevenZip == NULL && GameIsZip){
+		PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
+	}
+
+	RootDirs.push_back(new DirectoryFileSource("ns2"));
+	RootDirs.push_back(new DirectoryFileSource("core"));
 
 	auto directorystxt = NSRootPath/"directories.txt";
 
 	if(boostfs::exists(directorystxt)){
 		ProcessDirectoriesTXT(directorystxt);
+	}
+}
+
+void LuaModule::PrintMessage(lua_State *L, const char* msg){
+	
+	if(MessageFunc.is_valid()){
+		luabind::call_function<void>(MessageFunc, msg);
 	}
 }
 
@@ -105,8 +148,22 @@ void LuaModule::FindNSRoot(){
 	NSRootPath = exepath.parent_path();
 }
 
-void LuaModule::ParseGameCommandline(PlatformString& CommandLine )
-{
+void LuaModule::ProcessCommandline(){
+
+	wstring NativeCommandLine = GetCommandLine();
+
+	WStringToUTF8STLString(NativeCommandLine, CommandLine);
+
+	int arg_postion = NativeCommandLine.find(_T("-game"));
+
+	if(arg_postion != string::npos){
+		PlatformString GameCmd = NativeCommandLine.substr(arg_postion+5);
+
+		ParseGameCommandline(GameCmd);
+	}
+}
+
+void LuaModule::ParseGameCommandline(PlatformString& CommandLine ){
 
 		if(CommandLine.length() < 2){
 			throw exception("failed to parse \"game\" command line argument(find arg start)");
@@ -143,7 +200,7 @@ void LuaModule::ParseGameCommandline(PlatformString& CommandLine )
 
 		int FirstSlash = GameCmdPath.find('/');
 
-		bool IsZip = false;
+		GameIsZip = false;
 
 		if(FirstSlash == PathString::npos || FirstSlash == GameCmdPath.size()-1){
 			GameStringPath = NSRootPath/GameCmdPath;
@@ -167,42 +224,25 @@ void LuaModule::ParseGameCommandline(PlatformString& CommandLine )
 			}
 		}else{
 			if(boostfs::is_directory(GameStringPath)){
-				IsZip = false;
+				GameIsZip = false;
 			}else{
 				if(ext != _T(".zip")){
 					throw exception("Only zip files can be passed to -game command line");
 				}
-				IsZip = true;
+				GameIsZip = true;
 			}
 		}
 
 
-
-		if(!IsZip){
+		if(!GameIsZip){
 			RootDirs.push_back(new DirectoryFileSource(GameStringPath, ""));
 		}else{
-			RootDirs.push_back(SevenZip->OpenArchive(GameStringPath));
+			//RootDirs.push_back(SevenZip->OpenArchive(GameStringPath));
+
 		}
 
 }
 
-void LuaModule::AddMainFileSources(){
-
-	wstring NativeCommandLine = GetCommandLine();
-
-	WStringToUTF8STLString(NativeCommandLine, CommandLine);
-
-	int arg_postion = NativeCommandLine.find(_T("-game"));
-
-	if(arg_postion != string::npos){
-		PlatformString GameCmd = NativeCommandLine.substr(arg_postion+5);
-
-		ParseGameCommandline(GameCmd);
-	}
-
-	RootDirs.push_back(new DirectoryFileSource("ns2"));
-	RootDirs.push_back(new DirectoryFileSource("core"));
-}
 
 string LuaModule::GetCommandLineRaw(){
 	return CommandLine;
@@ -370,7 +410,7 @@ int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const ch
 		throw exception("lua file does not exist");
 	}
 
-	boost::iostreams::mapped_file_source MappedFile;
+	mapped_file_source MappedFile;
 
 	/*
 	have to be added cause

@@ -42,7 +42,7 @@ bool DirectoryFileSource::FileSize(const PathStringArg& path, double& Filesize )
 	if(!boostfs::exists(fullpath)){
 		return false;
 	}else{
-		Filesize = boostfs::file_size(fullpath);
+		Filesize = (double)boostfs::file_size(fullpath);
 	 return true;
 	}
 }

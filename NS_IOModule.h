@@ -27,15 +27,18 @@ class LuaModule{
 		static void Initialize(lua_State *L);
 		std::string GetCommandLineRaw();
 
+		static void PrintMessage(lua_State *L, const char* msg);
+
 		static std::string CommandLine, GameString;
 		static PlatformPath GameStringPath;
 
 	private:
 		static void FindNSRoot();
-		static void AddMainFileSources();
+		static void ProcessCommandline();
 		static void ParseGameCommandline(PlatformString& CommandLine);
 		static void ProcessDirectoriesTXT(PlatformPath directorystxt);
 
-
 		static boost::ptr_vector<FileSource> RootDirs;
+		static bool GameIsZip;
+		static luabind::object MessageFunc;
 };

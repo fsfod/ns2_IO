@@ -114,7 +114,7 @@ typedef std::wstring PlatformString;
 
 #include "PathStringArg.h"
 
-
+extern std::string DumpStack(lua_State *L);
 
 #define LUABIND_NO_RTTI
 #include <luabind/luabind.hpp>
