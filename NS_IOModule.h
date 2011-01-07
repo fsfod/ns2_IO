@@ -4,12 +4,12 @@
 #include "NSRootDir.h"
 #include <boost/ptr_container/ptr_vector.hpp>
 
-
 class LuaModule{
-	public:
-		static double GetFileSize(const PathStringArg& Path);
+  public:
 		static bool FileExists(const PathStringArg& Path);
+    static bool DirectoryExists(const PathStringArg& path);
 		static int GetDateModified(const PathStringArg& Path);
+    static double GetFileSize(const PathStringArg& Path);
 
 		static luabind::object FindFiles(lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
 		static luabind::object FindDirectorys(lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
@@ -18,9 +18,8 @@ class LuaModule{
 		static FileSource* OpenArchive2(lua_State* L, const PathStringArg& Path);
 
 		static luabind::object GetDirRootList(lua_State *L);
+		static bool IsRootFileSource(FileSource* source);
 		static const std::string& GetGameString();
-
-		static FileSource* LuaModule::GetRootDirectory(int index);
 		
 		static int LoadLuaFile(lua_State* L, const PlatformPath& FilePath, const char* chunkname);
 
@@ -37,8 +36,18 @@ class LuaModule{
 		static void ProcessCommandline();
 		static void ParseGameCommandline(PlatformString& CommandLine);
 		static void ProcessDirectoriesTXT(PlatformPath directorystxt);
+    static void StaticInit(lua_State* L);
 
 		static boost::ptr_vector<FileSource> RootDirs;
 		static bool GameIsZip;
-		static luabind::object MessageFunc;
+   
+    static int VmShutDown(lua_State* L);
+    static LuaModule* GetInstance(lua_State* L);
+
+public:
+    LuaModule(lua_State* L);
+    ~LuaModule(){}
+
+private:
+		luabind::object MessageFunc;
 };

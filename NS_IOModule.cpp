@@ -11,7 +11,6 @@
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/iostreams/stream.hpp>
 
-
 using namespace  std;
 
 PlatformPath NSRootPath(_T(""));
@@ -23,76 +22,129 @@ string LuaModule::GameString("");
 PlatformPath LuaModule::GameStringPath(_T(""));;
 boost::ptr_vector<FileSource> LuaModule::RootDirs(0);
 
-luabind::object LuaModule::MessageFunc;
+//luabind::object LuaModule::MessageFunc;
 bool LuaModule::GameIsZip = false;
 //{
 
 //PathMatchSpecEx for matching files names on windows
 //fnmatch on linux will do the same directorys 
 
+
+LuaModule::LuaModule(lua_State* L){
+  
+  lua_createtable(L,0, 1);
+  lua_pushcfunction(L, LuaModule::VmShutDown);
+  lua_setfield(L, -2, "__gc");
+  lua_setmetatable(L, -2);
+
+  lua_getfield(L, LUA_GLOBALSINDEX, "Shared");
+  if(lua_type(L, -1) != LUA_TNIL){
+    lua_getfield(L, -1, "Message");
+
+    if(lua_type(L, -1) != LUA_TNIL){
+      MessageFunc = luabind::object(luabind::from_stack(L, -1));
+    }
+    lua_pop(L, 1);
+  }
+  lua_pop(L, 1);
+}
+
+int LuaModule::VmShutDown(lua_State* L){
+
+  LuaModule* instance = (LuaModule*)lua_touserdata(L, 1);
+
+  //PrintMessage(L, "LuaModule Shutdown");
+
+  if(instance != NULL){
+    instance->~LuaModule();
+  }
+
+  return 0;
+}
+
 void LuaModule::Initialize(lua_State *L){
-	
-	lua_getfield(L, LUA_GLOBALSINDEX, "Shared");
-	if(lua_type(L, -1) != LUA_TNIL){
-		lua_getfield(L, -1, "Message");
-	
-		if(lua_type(L, -1) != LUA_TNIL){
-			MessageFunc = luabind::object(luabind::from_stack(L, -1));
-		}
-		lua_pop(L, 1);
-	}
-	lua_pop(L, 1);
 
-	FindNSRoot();
+  LuaModule* vm = new (lua_newuserdata(L, sizeof(LuaModule))) LuaModule(L);
+  lua_setfield(L, LUA_REGISTRYINDEX, "NS2_IOState");
 
-	//if -game is set 
-	ProcessCommandline();
+  StaticInit(L);
+}
 
-	auto ServerZipPath = (GameStringPath.empty() ? NSRootPath : GameStringPath) /"7z.dll";
+bool FirstLoad = true;
 
-	if(boostfs::exists(ServerZipPath)){
-		try{
-			SevenZip = C7ZipLibrary::Init(ServerZipPath);
-		}catch(exception e){
+void LuaModule::StaticInit(lua_State* L){
 
-		 string msg = "error while loading 7zip library: ";
-			msg += e.what();
-			PrintMessage(L, msg.c_str());
+  if(!FirstLoad)return;
 
-			SevenZip = NULL;
-		}
+  FirstLoad = false;
 
-		if(SevenZip != NULL && GameIsZip){
-			try{
-				RootDirs.push_back(SevenZip->OpenArchive(GameStringPath));
-			}catch(exception e){
-				string msg = "error while opening archive set with -game:";
-				msg += e.what();
-				PrintMessage(L, msg.c_str());
-			}
-		}
-	}else{
-		PrintMessage(L, "cannot find 7zip.dll so archive support is disabled");
-	}
+  FindNSRoot();
 
-	if(SevenZip == NULL && GameIsZip){
-		PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
-	}
+  //if -game is set 
+  ProcessCommandline();
 
-	RootDirs.push_back(new DirectoryFileSource("ns2"));
-	RootDirs.push_back(new DirectoryFileSource("core"));
+  auto ServerZipPath = (GameStringPath.empty() ? NSRootPath : GameStringPath) /"7z.dll";
 
-	auto directorystxt = NSRootPath/"directories.txt";
+  if(boostfs::exists(ServerZipPath)){
+    try{
+      SevenZip = C7ZipLibrary::Init(ServerZipPath);
+    }catch(exception e){
 
-	if(boostfs::exists(directorystxt)){
-		ProcessDirectoriesTXT(directorystxt);
-	}
+      string msg = "error while loading 7zip library: ";
+      msg += e.what();
+      PrintMessage(L, msg.c_str());
+
+      SevenZip = NULL;
+    }
+
+    if(SevenZip != NULL && GameIsZip){
+      try{
+        RootDirs.push_back(SevenZip->OpenArchive(GameStringPath));
+      }catch(exception e){
+        string msg = "error while opening archive set with -game:";
+        msg += e.what();
+        PrintMessage(L, msg.c_str());
+      }
+    }
+  }else{
+    PrintMessage(L, "cannot find 7zip.dll so archive support is disabled");
+  }
+
+  if(GameIsZip){
+   if(SevenZip == NULL) PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
+  }else{
+    if(!GameStringPath.empty()) RootDirs.push_back(new DirectoryFileSource(GameStringPath, "", true));
+  }
+
+  RootDirs.push_back(new DirectoryFileSource("ns2"));
+  RootDirs.push_back(new DirectoryFileSource("core"));
+
+  auto directorystxt = NSRootPath/"directories.txt";
+
+  if(boostfs::exists(directorystxt)){
+    ProcessDirectoriesTXT(directorystxt);
+  }
+}
+
+LuaModule* LuaModule::GetInstance(lua_State* L){
+  
+  lua_getfield(L, LUA_REGISTRYINDEX, "NS2_IOState");
+  
+  LuaModule* instance = (LuaModule*)lua_touserdata(L, -1);
+
+  if(instance == NULL){
+    throw exception("failed to get NS2_IOState");
+  }
+
+  return instance;
 }
 
 void LuaModule::PrintMessage(lua_State *L, const char* msg){
-	
-	if(MessageFunc.is_valid()){
-		luabind::call_function<void>(MessageFunc, msg);
+  
+  auto func = GetInstance(L)->MessageFunc;
+
+	if(func.is_valid()){
+		luabind::call_function<void>(func, msg);
 	}
 }
 
@@ -117,8 +169,8 @@ void LuaModule::ProcessDirectoriesTXT(PlatformPath directorystxt){
 
 		if(!path.has_root_name())path = NSRootPath/path;
 			if(boostfs::is_directory(path)){
-				RootDirs.push_back(new DirectoryFileSource(path/"ns2", ""));
-				RootDirs.push_back(new DirectoryFileSource(path/"core", ""));
+				RootDirs.push_back(new DirectoryFileSource(path/"ns2", "ns2", true));
+				RootDirs.push_back(new DirectoryFileSource(path/"core", "core", true));
 			}
 	}
 }
@@ -232,15 +284,6 @@ void LuaModule::ParseGameCommandline(PlatformString& CommandLine ){
 				GameIsZip = true;
 			}
 		}
-
-
-		if(!GameIsZip){
-			RootDirs.push_back(new DirectoryFileSource(GameStringPath, ""));
-		}else{
-			//RootDirs.push_back(SevenZip->OpenArchive(GameStringPath));
-
-		}
-
 }
 
 
@@ -248,6 +291,16 @@ string LuaModule::GetCommandLineRaw(){
 	return CommandLine;
 }
 
+bool LuaModule::DirectoryExists(const PathStringArg& path) {
+
+  bool FileFound = false;
+
+  BOOST_FOREACH(FileSource& source, RootDirs){
+    if(source.DirectoryExists(path)) return true;
+  }
+
+  return false;
+}
 
 bool LuaModule::FileExists(const PathStringArg& path) {
 
@@ -388,16 +441,18 @@ FileSource* LuaModule::OpenArchive(lua_State* L, FileSource* ContainingSource, c
 	return SevenZip->OpenArchive(FullPath);
 }
 
-FileSource* LuaModule::GetRootDirectory(int index) {
-	
-	if(index < 0 || (size_t)index >= RootDirs.size()) {
-		throw exception("GetRootDirectory Directory index out of range");
+bool LuaModule::IsRootFileSource(FileSource* source){
+
+	for(int i = 0; i < RootDirs.size() ; i++){
+		if(&RootDirs[i] == source){
+			return true;
+		}
 	}
 
-	return &RootDirs[index];
+	return false;
 }
 
-const string& LuaModule::GetGameString(){
+	const string& LuaModule::GetGameString(){
 	return GameString;
 }
 

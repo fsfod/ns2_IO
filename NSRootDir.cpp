@@ -13,23 +13,22 @@ namespace boostfs = boost::filesystem ;
  
 DirectoryFileSource::DirectoryFileSource(char* dirName){
 
-#if defined(UNICODE)
-	wstring DirectoryName;
-	UTF8ToWString(dirName, DirectoryName);
-
-	RealPath = NSRootPath/DirectoryName;
-#else
-	SetupPathStrings(nsroot, PathString(path));
-#endif // UINCODE
-
+	RealPath = NSRootPath/dirName;
 	GameFileSystemPath = dirName;
 
-	DirectoryName.insert(0, 1, '/');
-	DirectoryName.push_back('/');
+	IsRootSource = true;
+
+	if(GameFileSystemPath.back() != '/'){
+		GameFileSystemPath.push_back('/');
+	}
 }
 
-DirectoryFileSource::DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath)
- :GameFileSystemPath(GamePath), RealPath(DirectoryPath){
+DirectoryFileSource::DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath, bool isRootSource)
+ :GameFileSystemPath(GamePath), RealPath(DirectoryPath), IsRootSource(isRootSource){
+
+ if(!GameFileSystemPath.empty() && GameFileSystemPath.back() != '/'){
+	 GameFileSystemPath.push_back('/');
+ }
 }
 
 bool DirectoryFileSource::FileExists(const PathStringArg& FilePath){
@@ -145,8 +144,7 @@ void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePa
 
 	auto path = RealPath/ConvertAndValidatePath(FilePath);
 
-
-	LuaModule::LoadLuaFile(L, path, path.string().c_str());
+	LuaModule::LoadLuaFile(L, path, IsRootSource ? FilePath.GetNormalizedPath().c_str() : path.string().c_str());
 
 	//loadfile should of pushed either a function or an error message on to the stack leave it there as the return value
 	return;

@@ -111,7 +111,7 @@ void Archive::AddFilesToDirectorys(){
 
 
 Archive::~Archive(void){
-
+  Reader->Close();
 }
 
 bool Archive::FileExists(const PathStringArg& path){
@@ -185,28 +185,6 @@ bool Archive::FileSize(const PathStringArg& path, double& Filesize){
 	Filesize = GetFileEntrysSize(file->second);
 
 	return true;
-
-/*
-	NWindows::NCOM::CPropVariant prop;
-	
-	auto file = Files.find(path);
-
-	if(file == Files.end())return false;
-
-	if(Reader->GetProperty(file->second.FileIndex, kpidSize, &prop) != S_OK)throw std::exception("Unknown error while trying to get size of compressed file");
-
-	switch (prop.vt){
-		case VT_UI1: Filesize = prop.bVal;
-		case VT_UI2: Filesize = prop.uiVal;
-		case VT_UI4: Filesize = prop.ulVal;
-		case VT_UI8: Filesize = prop.uhVal.QuadPart;
-
-		default:
-			throw std::exception("Unknown error while trying to get size of compressed file");
-	}
-
-*/
-		return 0;
 }
 
 int Archive::GetFileEntrysSize(const FileEntry& fileentry){
@@ -410,8 +388,6 @@ void Archive::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 
 
 	extract.LoadLuaChunk(L, (ArchiveName+FilePath.ToString()).c_str());
-
-	//luaL_loadbuffer(L, , , "");
 
 	return;
 }

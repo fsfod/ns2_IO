@@ -18,7 +18,7 @@ SavedVariables::SavedVariables(lua_State* L, const string& fname, luabind::table
 
 SavedVariables::SavedVariables(lua_State* L, const string& fname, luabind::table<luabind::object> const& tableNames)
 	 :ExitAutoSave(true) {
-	
+
 	Init(L, fname, tableNames);
 }
 
@@ -38,14 +38,14 @@ void SavedVariables::Init(lua_State* L, const string& fname, luabind::table<luab
 		}
 	}
 
-	UTF8StringToWString(fname, FileName);
+	FileName = fname;
 
-	if(FileName.find_first_of(InvalidFileNameChars) != string::npos){
+	if(FileName.wstring().find_first_of(InvalidFileNameChars) != string::npos){
 			throw exception("the SavedVariables name cannot contain any of these characters  \\ \" . ");
 	}
 
 	CreateShutdownCallback(L);
-	FileName.append(_T(".lua"));
+	FileName.replace_extension(".lua");
 }
 
 
@@ -142,10 +142,16 @@ void SavedVariables::Load(lua_State *L){
 
 		 return;
 		}
-		
-		//FIXME throw an exception containing the error messing instead of blowing up the SEH chain with lua_error setjmp
-		//lua_error(L);
-		_ASSERT(false);
+	}
+
+	//we got an error while either parsing the saved variables file or when running it an error string should of been pushed onto the stack
+	size_t len = 0;
+	const char* s = lua_tolstring(L, -1, &len);
+
+	if(s != NULL){
+		throw exception(s);
+	}else{
+		throw runtime_error(string("Unknowned error while loading saved variables from ")+FileName.string());
 	}
 }
 
@@ -171,10 +177,10 @@ void SavedVariables::RegisterVariable(const string& varname){
 */
 
 int SavedVariables::ShutdownCallback(lua_State *L){
-	SavedVariables** savedvars = static_cast<SavedVariables**>(lua_touserdata(L, lua_upvalueindex(1)));
+	SavedVariables** savedvars = static_cast<SavedVariables**>(lua_touserdata(L, lua_upvalueindex(1)));;
 
 	try{
-		SavedVariables* SVObject = savedvars[0];
+		SavedVariables* SVObject = *savedvars;
 
 		//check to make sure our SavedVariables object has not been destroyed already
 		if(SVObject != NULL){
@@ -184,9 +190,9 @@ int SavedVariables::ShutdownCallback(lua_State *L){
 				SVObject->Save(L);
 			}
 		}
-	}catch(...){
-		delete savedvars;
-		return 0;
+	}catch(exception e){
+		LuaModule::PrintMessage(L, "Error while auto saving SavedVariables:");
+		LuaModule::PrintMessage(L, e.what());
 	}
 
 	delete savedvars;
@@ -236,6 +242,11 @@ int SavedVariables::Save(lua_State *L){
 
 		int CurrentStackPos = lua_gettop(L);
 
+		if(lua_type(L, -1) == LUA_TNIL){
+			lua_pop(L, 1);
+			continue;
+		}
+
 		fprintf(SavedVariableFile, "%s = ", VariableName.c_str());
 
 		switch(lua_type(L, -1)){
@@ -263,10 +274,6 @@ int SavedVariables::Save(lua_State *L){
 				}else{
 					fprintf(SavedVariableFile, "nil --[[Skipping userdata thats not a Vector or Angles]]\n");
 				}
-			break;
-
-			case LUA_TNIL:
-				//don't write nils out
 			break;
 
 			default:

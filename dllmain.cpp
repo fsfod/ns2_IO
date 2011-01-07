@@ -36,8 +36,8 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 	open(L);
 
 	module(L,"NS2_IO")[
-		def("GetRootDirectory", &LuaModule::GetRootDirectory),
-		def("Exists", &LuaModule::FileExists),
+		def("FileExists", &LuaModule::FileExists),
+    def("DirectoryExists", &LuaModule::DirectoryExists),
 		def("FileSize", &LuaModule::GetFileSize),
 		def("FindFiles", &LuaModule::FindFiles),
 		def("FindDirectorys", &LuaModule::FindDirectorys),
@@ -47,10 +47,8 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		def("GetCommandLineRaw", &LuaModule::GetCommandLineRaw),
 		def("OpenArchive", &LuaModule::OpenArchive, adopt(result)),
 		def("OpenArchive", &LuaModule::OpenArchive2, adopt(result)),
-
-
-
-
+		def("IsRootFileSource", &LuaModule::IsRootFileSource),
+		
 		FileSource::RegisterClass()
 		//class_<NSRootDir, bases<FileSource> >("RootDirectory")
 	];

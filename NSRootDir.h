@@ -14,7 +14,7 @@ public:
 	DirectoryFileSource(){}
 	DirectoryFileSource(char* path);
 
-	DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath);
+	DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath, bool isRootSource);
 	virtual ~DirectoryFileSource(){}
 
 	bool FileExists(const PathStringArg& path);
@@ -43,5 +43,6 @@ private:
 
 	PathString GameFileSystemPath;
 	PlatformPath RealPath;
+	bool IsRootSource;
 };
 

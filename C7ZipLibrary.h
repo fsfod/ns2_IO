@@ -20,7 +20,7 @@ namespace NWindows{
 	}
 }
 
-
+//adapted from http://code.google.com/p/lib7zip/
 class C7ZipLibrary{
 
 public:
