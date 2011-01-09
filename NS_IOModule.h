@@ -20,6 +20,7 @@ class LuaModule{
 		static luabind::object GetDirRootList(lua_State *L);
 		static bool IsRootFileSource(FileSource* source);
 		static const std::string& GetGameString();
+    static int LoadLuaDllModule(lua_State* L, FileSource* Source, const PathStringArg& DllPath );
 		
 		static int LoadLuaFile(lua_State* L, const PlatformPath& FilePath, const char* chunkname);
 
@@ -27,6 +28,7 @@ class LuaModule{
 		std::string GetCommandLineRaw();
 
 		static void PrintMessage(lua_State *L, const char* msg);
+    static void PrintMessage(lua_State *L, const std::string& msg);
 
 		static std::string CommandLine, GameString;
 		static PlatformPath GameStringPath;
@@ -47,7 +49,6 @@ class LuaModule{
 public:
     LuaModule(lua_State* L);
     ~LuaModule(){}
-
 private:
 		luabind::object MessageFunc;
 };

@@ -150,6 +150,32 @@ void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePa
 	return;
 }
 
+PlatformPath DirectoryFileSource::CompletePath(const PlatformPath& Path){
+  return RealPath/Path;
+}
+
+int DirectoryFileSource::RelativeRequire(lua_State* L, const PathStringArg& ModuleName ){
+  
+  auto SearchPath = RealPath/ConvertAndValidatePath(ModuleName)/"?.dll";
+
+  auto package = luabind::globals(L)["package"];
+
+  //relative 
+  try{
+    string OriginalCPath = luabind::object_cast<string>(package["cpath"]);
+    string OriginalPath = luabind::object_cast<string>(package["path"]);
+
+    package["cpath"] = SearchPath.string();
+
+
+    package["cpath"] = OriginalCPath;
+    package["path"] = OriginalPath;
+  }catch(luabind::cast_failed e){
+    
+  }
+
+  return 0;
+}
 
 ////////////////////////////////////////////////////////////////////
 ////////////////////        LUA Wrappers        ////////////////////

@@ -136,7 +136,13 @@ LuaModule* LuaModule::GetInstance(lua_State* L){
     throw exception("failed to get NS2_IOState");
   }
 
+  lua_pop(L, 1);
+
   return instance;
+}
+
+void LuaModule::PrintMessage(lua_State *L, const string& msg){
+  PrintMessage(L, msg.c_str());
 }
 
 void LuaModule::PrintMessage(lua_State *L, const char* msg){
@@ -454,6 +460,34 @@ bool LuaModule::IsRootFileSource(FileSource* source){
 
 	const string& LuaModule::GetGameString(){
 	return GameString;
+}
+
+int LuaModule::LoadLuaDllModule(lua_State* L, FileSource* Source, const PathStringArg& DllPath){
+  
+  DirectoryFileSource *dirsource = dynamic_cast<DirectoryFileSource *>(Source);
+
+  if (NULL == dirsource){
+    throw exception("Cannot load a dll module from a non DirectoryFileSource");
+  }
+  
+  auto ModulePath = dirsource->CompletePath(ConvertAndValidatePath(DllPath));
+
+  auto FileName = ModulePath.filename();
+
+  PrintMessage(L, (string("Loading lua dll module ")+DllPath.GetNormalizedPath()).c_str());
+
+  string EntryPoint = string("luaopen_")+FileName.replace_extension().string();
+
+  lua_getfield(L, LUA_GLOBALSINDEX, "package");
+  lua_getfield(L, -1, "loadlib");
+  lua_remove(L, -2);
+
+  lua_pushstring(L, ModulePath.string().c_str());
+  lua_pushstring(L, EntryPoint.c_str());
+  lua_call(L, 2, 2);
+
+  return 2;
+
 }
 
 int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const char* chunkname )

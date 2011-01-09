@@ -27,6 +27,8 @@ public:
 
 	const std::string& get_Path();
 
+  PlatformPath CompletePath(const PlatformPath& Path);
+
 	PathString& GetPath(){
 		return GameFileSystemPath;
 	}
@@ -39,8 +41,7 @@ public:
 private:
 	void SetupPathStrings(const PathString& nsroot, const PathString& path);
 	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
-	
-
+  int RelativeRequire(lua_State* L, const PathStringArg& ModuleName );
 	PathString GameFileSystemPath;
 	PlatformPath RealPath;
 	bool IsRootSource;
