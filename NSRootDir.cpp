@@ -144,7 +144,7 @@ void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePa
 
 	auto path = RealPath/ConvertAndValidatePath(FilePath);
 
-	LuaModule::LoadLuaFile(L, path, IsRootSource ? FilePath.GetNormalizedPath().c_str() : path.string().c_str());
+	LuaModule::LoadLuaFile(L, path, IsRootSource ? ('@'+FilePath.GetNormalizedPath()).c_str() : path.string().c_str());
 
 	//loadfile should of pushed either a function or an error message on to the stack leave it there as the return value
 	return;

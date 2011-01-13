@@ -48,6 +48,7 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		def("OpenArchive", &LuaModule::OpenArchive, adopt(result)),
 		def("OpenArchive", &LuaModule::OpenArchive2, adopt(result)),
 		def("IsRootFileSource", &LuaModule::IsRootFileSource),
+    def("LoadLuaDllModule", &LuaModule::LoadLuaDllModule),
 		
 		FileSource::RegisterClass()
 		//class_<NSRootDir, bases<FileSource> >("RootDirectory")

@@ -525,7 +525,7 @@ int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const ch
 	int LoadResult;
 
 	if(MappedFile.is_open()){
-		 LoadResult = luaL_loadbuffer(L, MappedFile.data(), MappedFile.size(), FilePath.string().c_str());
+		 LoadResult = luaL_loadbuffer(L, MappedFile.data(), MappedFile.size(), chunkname);
 	}else{
 		throw exception("Failed to open the lua file for reading");
 	}
