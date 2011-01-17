@@ -31,10 +31,12 @@ PlatformPath PathStringArg::CreateSearchPath(const PlatformPath& Root, const Pat
 	//the lua interfacing functions should be calling ConvertAndValidate on us before they pass it onto the real function
 	_ASSERT(CachedConvertedString.empty() == false || len == 0);
 
+  const PlatformPath& Path = CachedConvertedString.empty() ? Root : Root/CachedConvertedString;
+
 	if(SearchPath.len == 0){
-		return Root/CachedConvertedString/_T("*");
+		return Path/_T("*");
 	}else{
-		return Root/CachedConvertedString/SearchPath.GetConvertedNativePath();
+		return Path/SearchPath.GetConvertedNativePath();
 	}
 }
 

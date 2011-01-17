@@ -124,54 +124,61 @@ bool Archive::DirectoryExists(const PathStringArg& path){
 
 int Archive::FindFiles(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundFiles){
 
-		auto dir = PathToDirectory.find(SearchPath.GetNormalizedPath());
+  string search = SearchPath.GetNormalizedPath();
 
-		auto files = (*dir).second->Files;
+  const SourceDirectory* dir;
 
-		if(dir != PathToDirectory.end()){
-		 int count = 0;
+  if(search.empty()){
+    dir = this;
+  }else{
+    auto result = PathToDirectory.find(search);
 
-		 string patten = NamePatten.ToString();
+    if(result == PathToDirectory.end())return 0;
 
-			BOOST_FOREACH(const FileNode& file, (*dir).second->Files){
-				if(patten.empty() || PathMatchSpecExA(file.first.c_str(), patten.c_str(), PMSF_NORMAL)){
-					FoundFiles[file.first] = static_cast<FileSource*>(this);
-					count++;
-				}
-				return count;
-			}
+    dir = (*result).second;
+  }
+
+  int count = 0;
+
+	string patten = NamePatten.ToString();
+
+  BOOST_FOREACH(const FileNode& file, dir->Files){
+		if(patten.empty() || PathMatchSpecExA(file.first.c_str(), patten.c_str(), PMSF_NORMAL)){
+			FoundFiles[file.first] = static_cast<FileSource*>(this);
+			count++;
 		}
+	}
 
-	return 0;
+  return count;
 }
 
 int Archive::FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys){
-/*
-	SelfType* dir = PathToDirectory[SearchPath];
 
-	if(dir == NULL)return 0;
-	
-*/
+  string search = SearchPath.GetNormalizedPath();
 
-	auto dir = PathToDirectory.find(SearchPath.GetNormalizedPath());
+  const SourceDirectory* dir;
+  
+  if(search.empty()){
+    dir = this;
+  }else{
+   auto result = PathToDirectory.find(search);
 
-	if(dir != PathToDirectory.end()){
-		int count = 0;
+   if(result == PathToDirectory.end())return 0;
 
-		auto files = (*dir).second->Files;
+   dir = (*result).second;
+  }
 
-		string patten = NamePatten.ToString();
-
-		BOOST_FOREACH(const DirNode& entry, (*dir).second->Directorys){
-			if(patten.empty() || PathMatchSpecExA(entry.first.c_str(), patten.c_str(), PMSF_NORMAL)){
-				FoundDirectorys[entry.first] = static_cast<FileSource*>(this);
-				count++;
-			}
-		}
-		return count;
-	}
-
-	return 0;
+  int count = 0;
+  
+  string patten = NamePatten.ToString();
+  
+  BOOST_FOREACH(const DirNode& entry, dir->Directorys){
+  	if(patten.empty() || PathMatchSpecExA(entry.first.c_str(), patten.c_str(), PMSF_NORMAL)){
+  		FoundDirectorys[entry.first] = static_cast<FileSource*>(this);
+  		count++;
+  	}
+  }
+  return count;
 }
 
 bool Archive::FileSize(const PathStringArg& path, double& Filesize){
