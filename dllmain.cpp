@@ -4,28 +4,75 @@
 #include "SavedVariables.h"
 #include <luabind/tag_function.hpp>
 #include <luabind/adopt_policy.hpp>
-
 #include "PathStringConverter.h"
-
-
+#include <boost/system/system_error.hpp>
+#include <delayimp.h>
 
 HMODULE LibaryHandle = 0;
 
+#pragma comment(lib, "delayimp")
+
+void* WINAPI DelayLoadHook(unsigned dliNotify, PDelayLoadInfo  pdli){
+  
+  if(dliNotify != dliNotePreLoadLibrary || _stricmp(pdli->szDll, "luabind.dll") != 0)return NULL;
+
+  LibaryHandle = GetModuleHandleA("NS2_IO.dll");
+
+  if(LibaryHandle == NULL)return NULL;
+
+  const int BuffSize = 255;
+  wchar_t PathBuf[BuffSize];
+  wchar_t* path = PathBuf;
+  int PathSize = GetModuleFileNameW(LibaryHandle, PathBuf, BuffSize);
+  
+  if(PathSize == 0)return NULL;
+
+
+  if(PathSize >= BuffSize-12){
+   int CurrentSize = 300;
+   int result;
+   
+   do{
+     path = new wchar_t[CurrentSize];
+
+     result = GetModuleFileNameW(LibaryHandle, path, CurrentSize);
+
+     if(result >= CurrentSize-12){
+       CurrentSize *= 2;
+       delete path;
+     }else{
+       if(result == 0){
+         delete path;
+         return NULL;
+       }else{
+       	break;
+       }
+     }
+   }while(true);
+  }
+
+  wchar_t* pos = wcsrchr(path, '\\');
+  if(pos == NULL)return NULL;
+
+  wcscpy(pos+1, L"luabind.dll");
+
+  HMODULE hmod = LoadLibraryW(path);
+
+  if(path != PathBuf)delete path;
+
+ return (void*)hmod;
+}
+
+PfnDliHook __pfnDliNotifyHook2 = (PfnDliHook)&DelayLoadHook;
 
 
 BOOL APIENTRY DllMain(HMODULE hModule,DWORD  ul_reason_for_call, LPVOID lpReserved){
 
 	LibaryHandle = hModule;
 
-	switch (ul_reason_for_call){
-		case DLL_PROCESS_ATTACH:
-		case DLL_THREAD_ATTACH:
-		case DLL_THREAD_DETACH:
-		case DLL_PROCESS_DETACH:
-		break;
-	}
 	return TRUE;
 }
+
 
 extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 	

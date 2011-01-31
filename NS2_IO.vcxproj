@@ -44,7 +44,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
-    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -57,15 +57,17 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <BufferSecurityCheck>true</BufferSecurityCheck>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>lua51.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>luabind.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\$(TargetName)$(TargetExt)"
-copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\$(TargetName).pdb"</Command>
+      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
+copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName).pdb"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -88,9 +90,11 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Nat
       <OptimizeReferences>true</OptimizeReferences>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalDependencies>lua51.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>luabind.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Natural Selection 2@Install_Dir)\$(TargetName)$(TargetExt)"</Command>
+      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
+copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName).pdb"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

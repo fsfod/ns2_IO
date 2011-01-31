@@ -9,7 +9,7 @@ int32_t FileSource::Lua_GetModifedTime(const PathStringArg& Path){
 	ConvertAndValidatePath(Path);
 
 	if(this->GetModifiedTime(Path, time)){
-		throw exception("RootDir::DateModifed cannot get the modified time of a file that does not exist");
+		throw exception("FileSource::DateModifed cannot get the modified time of a file that does not exist");
 	}
 
 	return time;
@@ -26,7 +26,7 @@ double FileSource::Lua_FileSize( const PathStringArg& path ){
 	ConvertAndValidatePath(path);
 
 	if(this->FileSize(path, size)){
-		throw exception("RootDir::FileSize cannot get the size of a file that does not exist");
+		throw exception("FileSource::FileSize cannot get the size of a file that does not exist");
 	}
 
 	return size;

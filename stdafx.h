@@ -116,7 +116,10 @@ typedef std::wstring PlatformString;
 
 extern std::string DumpStack(lua_State *L);
 
+#pragma warning( disable: 4251)
+
 #define LUABIND_NO_RTTI
+#define LUABIND_DYNAMIC_LINK
 #include <luabind/luabind.hpp>
 
 //just include our convert here instead of in the cpp files that expose functions to lua that use PathStringArg args
