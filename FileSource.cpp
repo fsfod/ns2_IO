@@ -1,7 +1,7 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "FileSource.h"
 
-using namespace std;
+//using namespace std;
 
 int32_t FileSource::Lua_GetModifedTime(const PathStringArg& Path){
 	int time = 0;
@@ -84,7 +84,7 @@ void FileSource::Lua_LoadLuaFile(lua_State *L, const PathStringArg& path){
 
 luabind::scope FileSource::RegisterClass(){
 
-	return luabind::class_<FileSource>("FileSource")
+	return luabind::class_<FileSource, shared_ptr<FileSource>>("FileSource")
 		//.def_readonly("Path", &FileSource::Lua_get_Path)
 		.def("FileExists", &FileSource::Lua_FileExists)
 		.def("FileSize", &FileSource::Lua_FileSize)

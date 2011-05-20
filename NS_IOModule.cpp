@@ -6,11 +6,16 @@
 #include "C7ZipLibrary.h"
 #include "PathStringConverter.h"
 
+#include "ExtractCache.h"
+
+
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <fstream>
 
+#include "ResourceOverrider.h"
 using namespace  std;
 
 PlatformPath NSRootPath(_T(""));
@@ -19,8 +24,15 @@ C7ZipLibrary* SevenZip = NULL;
 //LuaModule::LuaModule(){
 string LuaModule::CommandLine("");
 string LuaModule::GameString("");
-PlatformPath LuaModule::GameStringPath(_T(""));;
+
+PlatformPath LuaModule::GameStringPath(_T(""));
+
+DirectoryFileSource* LuaModule::ModDirectory = NULL;
 boost::ptr_vector<FileSource> LuaModule::RootDirs(0);
+
+ResourceOverrider* OverrideSource = nullptr;
+
+//ExtractCache LuaModule::ExtractedFileCache;
 
 //luabind::object LuaModule::MessageFunc;
 bool LuaModule::GameIsZip = false;
@@ -55,6 +67,9 @@ int LuaModule::VmShutDown(lua_State* L){
 
   //PrintMessage(L, "LuaModule Shutdown");
 
+  //this could be either the Server or Client VM it doesn't really for matter unmounting 
+  OverrideSource->UnmountMapArchive();
+
   if(instance != NULL){
     instance->~LuaModule();
   }
@@ -67,14 +82,67 @@ void LuaModule::Initialize(lua_State *L){
   LuaModule* vm = new (lua_newuserdata(L, sizeof(LuaModule))) LuaModule(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "NS2_IOState");
 
+  VC2005RunTime::GetInstance();
+
   StaticInit(L);
+}
+
+M4FileSystem* (__cdecl *GetFileSystem)() =0;
+typedef void ( M4FileSystem::*AddSourcePtr)(EngineFileSource*, int flags);
+
+
+void LuaModule::SetupFilesystemMounting(){
+
+  HMODULE engine = GetModuleHandleA("engine.dll");
+  
+  if(engine == INVALID_HANDLE_VALUE){
+    throw exception("Failed to get engine.dll handle");
+  }
+
+  //void* FileSystemDtor =  GetProcAddress(engine, "??1FileSystem@M4@@EAE@XZ");
+  
+  GetFileSystem =  (M4FileSystem* (__cdecl *)())GetProcAddress(engine, "?Get@?$Singleton@VFileSystem@M4@@@M4@@SAAAVFileSystem@2@XZ");
+  
+  AddSourcePtr FileSystemAddSource;
+  *(void**)(&FileSystemAddSource) = (void*)GetProcAddress(engine, "?AddSource@FileSystem@M4@@QAEXPAVFileSource@2@I@Z");  
+  
+  M4FileSystem* FileSystem = GetFileSystem();
+  
+  FileListType& FileSystemList = FileSystem->FileList;
+  
+  //char buff[300];
+  //_snprintf(buff, sizeof(buff),"list size %i  sizeif(string) %i", listsize, sizeof(VC05string));//((char*)&FileSystemList->_Myfirst)-FileSystem, ((char*)&FileSystemList->_Mylast)-FileSystem);
+  
+  //OutputDebugStringA(buff);
+  
+  OverrideSource = new ResourceOverrider();
+  
+  //make sure theres space for ResourceOverrider by adding a dummy
+  (FileSystem->*FileSystemAddSource)(nullptr, 1);
+  
+  int listsize = FileSystemList.size();
+  
+  //shift everything up a slot so we can add our override source at the start
+
+  FileSystemList.pop_back();
+  FileSystemList.push_front(std::pair<int, EngineFileSource*>(1, OverrideSource));
 }
 
 bool FirstLoad = true;
 
+void LuaModule::LoadExtractCache(){
+
+  PlatformPath CacheDirectory = *ModDirectory/"ExtractCache";
+
+  //ExtractedFileCache.Load(CacheDirectory, ModDirectory->GetFileSystemPath());
+}
+
 void LuaModule::StaticInit(lua_State* L){
 
   if(!FirstLoad)return;
+
+  //increment our dll ref count by 1 so don't get destroyed on vm tear down but on process exit
+  LoadLibraryA("NS2_IO.dll");
 
   FirstLoad = false;
 
@@ -113,7 +181,10 @@ void LuaModule::StaticInit(lua_State* L){
   if(GameIsZip){
    if(SevenZip == NULL) PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
   }else{
-    if(!GameStringPath.empty()) RootDirs.push_back(new DirectoryFileSource(GameStringPath, "", true));
+    if(!GameStringPath.empty()){
+      ModDirectory = new DirectoryFileSource(GameStringPath, "", true);
+      RootDirs.push_back(ModDirectory);
+    } 
   }
 
   RootDirs.push_back(new DirectoryFileSource("ns2"));
@@ -124,6 +195,10 @@ void LuaModule::StaticInit(lua_State* L){
   if(boostfs::exists(directorystxt)){
     ProcessDirectoriesTXT(directorystxt);
   }
+
+  SetupFilesystemMounting();
+
+ // LoadExtractCache();
 }
 
 LuaModule* LuaModule::GetInstance(lua_State* L){
@@ -151,7 +226,7 @@ void LuaModule::PrintMessage(lua_State *L, const char* msg){
 
 	if(func.is_valid()){
 		luabind::call_function<void>(func, msg);
-	}
+  }
 }
 
 void LuaModule::ProcessDirectoriesTXT(PlatformPath directorystxt){
@@ -199,7 +274,7 @@ void LuaModule::FindNSRoot(){
 
 		pathLen = GetModuleFileName(hmodule, (wchar_t*)ExePath.c_str(), pathLen);
 	}
-	
+
 	replace(ExePath, '\\', '/');
 
 	boostfs::path exepath = boostfs::path(ExePath);
@@ -407,11 +482,11 @@ luabind::object LuaModule::GetDirRootList(lua_State *L) {
 	return table;
 }
 
-FileSource* LuaModule::OpenArchive2(lua_State* L, const PathStringArg& Path){
+boost::shared_ptr<FileSource> LuaModule::OpenArchive2(lua_State* L, const PathStringArg& Path){
 	return OpenArchive(L, NULL, Path);
 }
 
-FileSource* LuaModule::OpenArchive(lua_State* L, FileSource* ContainingSource, const PathStringArg& Path){
+boost::shared_ptr<FileSource> LuaModule::OpenArchive(lua_State* L, FileSource* ContainingSource, const PathStringArg& Path){
 
 	if(SevenZip == NULL){
 		throw exception("Cannot open archive because the 7zip library is not loaded");
@@ -444,7 +519,22 @@ FileSource* LuaModule::OpenArchive(lua_State* L, FileSource* ContainingSource, c
 		throw exception("Cannot find Archive to open");
 	}
 
-	return SevenZip->OpenArchive(FullPath);
+	return SevenZip->OpenArchive(FullPath)->GetLuaPointer();
+}
+
+luabind::object LuaModule::GetSupportedArchiveFormats(lua_State *L) {
+
+  auto formats = SevenZip->GetSupportedFormats();
+
+  lua_createtable(L, RootDirs.size(), 0);
+  luabind::object table = luabind::object(luabind::from_stack(L,-1));
+
+  for(uint32_t i = 0; i < formats.size() ; i++){
+    //strip the starting dot
+    table[i+1] = formats[i].c_str()+1;
+  }
+
+  return table;
 }
 
 bool LuaModule::IsRootFileSource(FileSource* source){
@@ -470,7 +560,7 @@ int LuaModule::LoadLuaDllModule(lua_State* L, FileSource* Source, const PathStri
     throw exception("Cannot load a dll module from a non DirectoryFileSource");
   }
   
-  auto ModulePath = dirsource->CompletePath(ConvertAndValidatePath(DllPath));
+  auto ModulePath = *dirsource/ConvertAndValidatePath(DllPath);
 
   auto FileName = ModulePath.filename();
 
@@ -501,6 +591,12 @@ int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const ch
 
 	mapped_file_source MappedFile;
 
+  //mapped_file_sink out;
+
+  //out.open("", 100, 100);
+
+  //basic_mapped_file_params<boostfs::path> p;
+  //p.flags
 	/*
 	have to be added cause
 
@@ -517,24 +613,70 @@ int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const ch
 	//windows gives us an error if we try to map a 0 byte file
 	//just fake loading a empty file
 	if(boostfs::file_size(FilePath) == 0){
-		return luaL_loadbuffer(L, " ", 1, FilePath.string().c_str());
+	//	return luaL_loadbuffer(L, " ", 1, FilePath.string().c_str());
 	}
 
-	MappedFile.open(FilePath.wstring());
+	//MappedFile.open(FilePath.wstring());
 
 	int LoadResult;
 
+  LoadResult = luaL_loadfile(L, FilePath.string().c_str());
+  /*
 	if(MappedFile.is_open()){
 		 LoadResult = luaL_loadbuffer(L, MappedFile.data(), MappedFile.size(), chunkname);
 	}else{
 		throw exception("Failed to open the lua file for reading");
 	}
-
+  */
 	//luaL_loadbuffer should of pushed either a function or an error message on to the stack
 	return LoadResult;
 }
 
+void LuaModule::MountMapArchive(Archive* archive){
+  OverrideSource->MountMapArchive(archive);
+}
 
+void LuaModule::UnMountMapArchive(){
+  OverrideSource->UnmountMapArchive();
+}
+
+void LuaModule::MountArchiveFile(FileSource* Source, const PathStringArg& FileInArchive, const PathStringArg& DestinationPath){
+
+  ConvertAndValidatePath(DestinationPath);
+  Archive *ArchiveSource = dynamic_cast<Archive *>(Source);
+
+  if (NULL == ArchiveSource){
+    throw exception("FileSource is not an Archive file sources");
+  }
+
+  if(FileInArchive.GetExtension() != DestinationPath.GetExtension())throw exception("The destination file needs to have the same extension as the file from the archive");
+
+  int index = ArchiveSource->GetFileIndex(FileInArchive.GetNormalizedPath());
+
+  if(index == -1)throw exception("Could not find the file specified in the archive");
+
+  OverrideSource->AddFileOverride(DestinationPath.GetNormalizedPath(), ArchiveSource, index);
+}
+
+void LuaModule::ExtractResource(FileSource* Source, const PathStringArg& FileInArchive, const PathStringArg& DestinationPath){
+
+  ConvertAndValidatePath(DestinationPath);
+  Archive *ArchiveSource = dynamic_cast<Archive *>(Source);
+
+  if(NULL == ArchiveSource){
+    throw exception("Can only extract resource's from Archive file sources");
+  }
+
+  if(FileInArchive.GetExtension() != DestinationPath.GetExtension())throw exception("The destination file needs to have the same extension as the file from the archive");
+
+  int index = ArchiveSource->GetFileIndex(FileInArchive.GetNormalizedPath());
+
+  if(index == -1)throw exception();
+
+  OverrideSource->AddFileOverride(DestinationPath.GetNormalizedPath(), ArchiveSource, index);
+
+ // ExtractedFileCache.ExtractResourceToPath(ArchiveSource, FileInArchive.GetNormalizedPath(), DestinationPath);
+}
 
 
 

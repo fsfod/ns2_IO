@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Archive.h"
 #include "C7ZipLibrary.h"
-
+#include "StringUtil.h"
 
 #include "7zip/CPP/Windows/PropVariant.h"
 #include "7zip/CPP/Common/MyCom.h"
@@ -27,13 +27,13 @@ C7ZipLibrary::C7ZipLibrary(void* libaryHandle){
 	LoadFormats();
 }
 
-using namespace std;
+//using namespace std;
 namespace boostfs = boost::filesystem ;
 
 
 static const wchar_t* Extensions[] = {_T(".zip"), _T(".7z"), _T(".rar")};
 
-unordered_set<wstring> ValidExtensions(0);
+std::unordered_set<wstring> ValidExtensions(0);
 
 C7ZipLibrary* C7ZipLibrary::Init( PlatformPath& LibaryPath )
 {
@@ -54,6 +54,17 @@ C7ZipLibrary* C7ZipLibrary::Init( PlatformPath& LibaryPath )
 }
 
 C7ZipLibrary::~C7ZipLibrary(void){
+}
+
+vector<string> C7ZipLibrary::GetSupportedFormats(){
+
+  vector<string> FormatExtensions;
+
+  BOOST_FOREACH(const wstring& format, ArchiveFormats|boost::adaptors::map_keys){
+    FormatExtensions.push_back(WStringToUTF8STLString(format));
+  }
+
+  return FormatExtensions;
 }
 
 void SplitString(const wstring &srcString, vector<wstring> &destStrings){
@@ -147,7 +158,8 @@ bool C7ZipLibrary::LoadFormats(){
 	return true;
 }
 
-FileSource* C7ZipLibrary::OpenArchive( const PlatformPath& ArchivePath){
+Archive* C7ZipLibrary::OpenArchive( const PlatformPath& ArchivePath )
+{
 
 	auto ext = ArchivePath.extension();
 
@@ -170,11 +182,16 @@ FileSource* C7ZipLibrary::OpenArchive( const PlatformPath& ArchivePath){
 	 
 	if(!inStream->Open(ArchivePath.c_str())){
 		delete inStream;
+    archive->Release();
+
 		throw exception("Failed to open archive for reading");
 	}
 
 
 	if(archive->Open(inStream, 0, NULL) != S_OK){
+    delete inStream;
+    archive->Release();
+
 		throw exception("Archive is either corrupt or 7zip was unable parse the archive header");
 	}
 

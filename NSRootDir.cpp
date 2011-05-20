@@ -2,10 +2,11 @@
 #include "NSRootDir.h"
 #include "NS_IOModule.h"
 #include "StringUtil.h"
+#include <boost/algorithm/string.hpp>
 
 extern PlatformPath NSRootPath;
 
-using namespace std;
+//using namespace std;
 
 namespace boostfs = boost::filesystem ;
 
@@ -33,6 +34,10 @@ DirectoryFileSource::DirectoryFileSource(const PlatformPath& DirectoryPath, cons
 
 bool DirectoryFileSource::FileExists(const PathStringArg& FilePath){
 	return boostfs::exists(FilePath.CreatePath(RealPath));
+}
+
+bool DirectoryFileSource::FileExists(const string& FilePath){
+  return boostfs::exists(RealPath/FilePath);
 }
 
 bool DirectoryFileSource::FileSize(const PathStringArg& path, double& Filesize ){
@@ -121,10 +126,10 @@ bool DirectoryFileSource::GetModifiedTime( const PathStringArg& Path, int32_t& T
 
 	auto fullpath = Path.CreatePath(RealPath);
 
-#ifdef UNICODE
+#ifdef UNICODE 
 	struct _stat32 FileInfo;
 
-	int result = _wstat(fullpath.c_str(), &FileInfo);
+	int result = _wstat32(fullpath.c_str(), &FileInfo);
 #else
 	struct stat FileInfo;
 
@@ -140,18 +145,27 @@ bool DirectoryFileSource::GetModifiedTime( const PathStringArg& Path, int32_t& T
 	return true;
 }
 
+
+const string luaExt(".lua");
+
 void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePath ){
 
 	auto path = RealPath/ConvertAndValidatePath(FilePath);
 
-	LuaModule::LoadLuaFile(L, path, IsRootSource ? ('@'+FilePath.GetNormalizedPath()).c_str() : path.string().c_str());
+  if(FilePath.GetExtension() != luaExt){
+    throw std::runtime_error(FilePath.ToString() + " is not a lua file");
+  }
+
+  string chunkpath = path.string();
+  //
+
+  boost::replace(chunkpath, '/', '\\');
+
+
+	LuaModule::LoadLuaFile(L, path, ('@'+chunkpath).c_str() );
 
 	//loadfile should of pushed either a function or an error message on to the stack leave it there as the return value
 	return;
-}
-
-PlatformPath DirectoryFileSource::CompletePath(const PlatformPath& Path){
-  return RealPath/Path;
 }
 
 int DirectoryFileSource::RelativeRequire(lua_State* L, const PathStringArg& ModuleName ){

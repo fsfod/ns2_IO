@@ -2,15 +2,33 @@
 #include "PathStringArg.h"
 #include <boost\algorithm\string\case_conv.hpp>
 
-using namespace std;
+//using namespace std;
 
 PathStringArg::~PathStringArg(void){
 }
 
 //Normalized
-std::string PathStringArg::GetNormalizedPath() const
-{
+string PathStringArg::GetNormalizedPath() const{
 	return NormalizedPath(s, len);
+}
+
+string PathStringArg::GetExtension() const{
+
+  if(len == 0 || s[0] == 0)return string();
+
+    const char* dot =  strchr(s, '.');
+
+    if(dot == NULL){
+      return string();
+    }
+    
+  int ExtIndex = (int)(dot-s);
+
+  string ext(s+ExtIndex, len-ExtIndex);
+
+  boost::to_lower(ext);
+
+  return ext;
 }
 
 const PlatformString& PathStringArg::GetConvertedNativePath()const{
@@ -49,11 +67,14 @@ const PlatformString& PathStringArg::ConvertAndValidate(const char* VaribleName)
 #endif
 
 	if(CachedConvertedString.find_first_of(InvalidPathChars) != PathString::npos){
-		throw runtime_error(string(VaribleName)+" cannot contain any of these chars :%|<>\"");
+		throw std::runtime_error(string(VaribleName)+" cannot contain any of these chars :%|<>\"");
 	}
 
-	if(CachedConvertedString.find(L"..") != -1){
-		throw runtime_error(string(VaribleName)+" cannot contain the directory up string \"..\"");
+  //size_t dotindex = CachedConvertedString.find('.');
+
+  //check thats theres not more than 1 dot in the string
+  if(CachedConvertedString.find(L"..") != string::npos){
+		throw std::runtime_error(string(VaribleName)+" cannot contain the directory up string \"..\"");
 	}
 
 	return CachedConvertedString;

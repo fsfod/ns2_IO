@@ -10,10 +10,13 @@
 #include "7zip/CPP/Common/MyCom.h"
 
 #include <boost/algorithm/string.hpp>  
+#include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/iostreams/stream.hpp>
 
-using namespace std;
+//using namespace std;
+using namespace boost::iostreams;
 
-Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader){
+Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader) : HasMountedFiles(false), LuaPointer(){
 
 	Reader = reader;
 	ArchivePath = archivepath;
@@ -36,6 +39,24 @@ Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader
 
 
 	AddFilesToDirectorys();
+}
+
+boost::shared_ptr<FileSource> Archive::GetLuaPointer(){
+  
+  //recreate our pointer if the previous lua shared_ptr was GC'ed
+  if(LuaPointer.use_count() == 0){
+    
+    boost::shared_ptr<FileSource> ptr(this, [](Archive* arc){
+                                       if(!arc->HasMountedFiles){
+                                         delete arc;
+                                       }
+                                     });
+    LuaPointer = ptr;
+
+    return ptr;
+  }else{
+   return boost::shared_ptr<FileSource>(LuaPointer);
+  }
 }
 
 
@@ -70,7 +91,7 @@ Archive::SelfType* Archive::CreateDirectorysForPath(const std::string& path, vec
 	return Directory;
 }
 
-typedef hash_map<PathString, FileEntry>::_Paircc FileNode;
+typedef std::hash_map<PathString, FileEntry>::_Paircc FileNode;
 
 
 void Archive::AddFilesToDirectorys(){
@@ -183,22 +204,22 @@ int Archive::FindDirectorys(const PathStringArg& SearchPath, const PathStringArg
 
 bool Archive::FileSize(const PathStringArg& path, double& Filesize){
 
-	auto file = Files.find(path.GetNormalizedPath());
+	auto file = PathToFile.find(path.GetNormalizedPath());
 
-	if(file == Files.end()){
+	if(file == PathToFile.end()){
 		return false;
 	}
 
-	Filesize = GetFileEntrysSize(file->second);
+	Filesize = GetFileSize(file->second.FileIndex);
 
 	return true;
 }
 
-int Archive::GetFileEntrysSize(const FileEntry& fileentry){
+uint32_t Archive::GetFileSize(int FileIndex){
 	
 	NWindows::NCOM::CPropVariant prop;
 
-	if(Reader->GetProperty(fileentry.FileIndex, kpidSize, &prop) != S_OK){
+	if(Reader->GetProperty(FileIndex, kpidSize, &prop) != S_OK){
 		throw std::exception("Unknown error while trying to get size of compressed file");
 	}
 
@@ -222,13 +243,13 @@ int Archive::GetFileEntrysSize(const FileEntry& fileentry){
 		break;
 
 		default:
-			throw std::exception("Unexpected value type while geting size of compressed file");
+			throw std::exception("Unexpected value type while getting size of compressed file");
 	}
 	
 
 	_ASSERT(Filesize < INT32_MAX);
 
-	return (int32_t)Filesize;
+	return (uint32_t)Filesize;
 }
 
 bool Archive::GetModifiedTime(const PathStringArg& Path, int32_t& Time){
@@ -254,6 +275,19 @@ public:
 		}
 	}
 
+  void* TransferBufferOwnership(){
+    
+    if(buffer == NULL){
+      throw exception("Cannot transfer a NULL buffer");
+    }
+
+    void* ret = buffer;
+     buffer = NULL;
+     Size = Capacity = Position = 0;
+
+    return ret;
+  }
+
 	STDMETHOD(Write)(const void *data, UInt32 dataSize, UInt32 *processedSize){
 		if(Position+(int)dataSize > Capacity){
 			SetSize(Capacity*2);
@@ -263,7 +297,7 @@ public:
 
 		*processedSize = dataSize;
 
-		Position =+ dataSize;
+		Position += dataSize;
 
 		return S_OK;
 	}
@@ -307,6 +341,120 @@ private:
 	friend class ExtractCallback;
 };
 
+class MemMappedOutSteam : public ISequentialOutStream, public CMyUnknownImp{
+
+public:
+  MY_UNKNOWN_IMP
+
+  MemMappedOutSteam(): Size(0), Position(0), buffer(NULL){
+  }
+
+  MemMappedOutSteam(PlatformPath path, int size): Size(size), Position(0), buffer(NULL){
+    basic_mapped_file_params<wstring> params(path.wstring());
+    params.new_file_size = size;
+    params.flags = mapped_file_base::readwrite;
+
+    mappedfile = mapped_file_sink(params);
+    buffer = mappedfile.data();
+  }
+
+  virtual ~MemMappedOutSteam(){
+    mappedfile.close();
+  }
+
+  STDMETHOD(Write)(const void *data, UInt32 dataSize, UInt32 *processedSize){
+    _ASSERT(Position+(int)dataSize <= Size);
+
+    memcpy_s(buffer+Position, Size-Position, data, dataSize);
+    Position += dataSize;
+
+    return S_OK;
+  }
+
+  STDMETHOD(SetSize)(Int64 newSize){
+    _ASSERT(newSize <= Size);
+
+    return S_OK;
+  }
+
+private:
+  mapped_file_sink mappedfile;
+  char* buffer;
+  int Size, Position;
+
+  friend class ExtractCallback;
+};
+
+class SingleExtractCallback: public IArchiveExtractCallback,
+  public CMyUnknownImp{
+
+public:
+  MY_UNKNOWN_IMP
+
+  SingleExtractCallback(int index, ISequentialOutStream *steam) : 
+    FileIndex(index), Stream(steam), Result(-1){
+
+    steam->AddRef();
+    steam->AddRef();
+
+    AddRef();
+    AddRef();
+  }
+
+  // IProgress
+  STDMETHOD(SetTotal)(UInt64 size){
+    return S_OK;
+  }
+
+  STDMETHOD(SetCompleted)(const UInt64 *completeValue){
+    return S_OK;
+  }
+
+  // IArchiveExtractCallback
+  STDMETHOD(GetStream)(UInt32 index, ISequentialOutStream **outStream, Int32 askExtractMode){
+    _ASSERT(index == FileIndex);
+
+    if(askExtractMode != NArchive::NExtract::NAskMode::kExtract)return S_OK;
+
+    *outStream = Stream;
+
+    return S_OK;
+  }
+
+  STDMETHOD(PrepareOperation)(Int32 askExtractMode){
+    return S_OK;
+  }
+
+  void CheckResult(){
+    switch(Result){
+      case NArchive::NExtract::NOperationResult::kOK:
+      break;
+
+      case NArchive::NExtract::NOperationResult::kUnSupportedMethod:
+        throw exception("error extracting file unsupported compressing method used on file");
+
+      case NArchive::NExtract::NOperationResult::kCRCError:
+        throw exception("error extracting file crc mismatch");
+
+      case NArchive::NExtract::NOperationResult::kDataError:
+        throw exception("error extracting file unknown data error");
+    }
+  }
+
+  //we delay throwing an error from this result till CheckResult is called
+  STDMETHOD(SetOperationResult)(Int32 OperationResult){
+    _ASSERT(Result == -1);
+    Result = OperationResult;
+    return S_OK;
+  }
+
+
+private:
+  ISequentialOutStream* Stream;
+  int Result;
+  int FileIndex;
+};
+/*
 class ExtractCallback: public IArchiveExtractCallback,
 	public CMyUnknownImp{
 
@@ -343,19 +491,19 @@ public:
 
 	int LoadLuaChunk(lua_State* L, const char* ChunkName){
 		switch(Result){
-			case NArchive::NExtract::NOperationResult::kOK:
-			break;
+    case NArchive::NExtract::NOperationResult::kOK:
+      break;
 
-			case NArchive::NExtract::NOperationResult::kUnSupportedMethod:
-				throw exception("error extracting file unsupported compressing method used on file");
+    case NArchive::NExtract::NOperationResult::kUnSupportedMethod:
+      throw exception("error extracting file unsupported compressing method used on file");
 
-			case NArchive::NExtract::NOperationResult::kCRCError:
-				throw exception("error extracting file crc mismatch");
-			
+    case NArchive::NExtract::NOperationResult::kCRCError:
+      throw exception("error extracting file crc mismatch");
 
-			case NArchive::NExtract::NOperationResult::kDataError:
-				throw exception("error extracting file unknown data error");
-		}
+
+    case NArchive::NExtract::NOperationResult::kDataError:
+      throw exception("error extracting file unknown data error");
+    }
 
 		return stream.LoadChunk(L, ChunkName);
 	}
@@ -372,8 +520,35 @@ public:
 private:
 	int Result;
 	int FileIndex;
-	
 };
+*/
+void Archive::ExtractFile(uint32_t FileIndex, const PlatformPath& FilePath){
+
+  if(boostfs::exists(FilePath)){
+    throw exception("Cannot extract over an existing file");
+  }
+
+  int size = GetFileSize(FileIndex);
+
+  MemMappedOutSteam stream(FilePath, size);
+  SingleExtractCallback extrackCb(FileIndex, &stream);
+
+  Reader->Extract(&FileIndex, 1, false, &extrackCb);
+  extrackCb.CheckResult();
+}
+
+void* Archive::ExtractFileToMemory(uint32_t FileIndex){
+
+  int size = GetFileSize(FileIndex);
+
+  SimpleOutSteam stream(size);
+  SingleExtractCallback extrackCb(FileIndex, &stream);
+
+  Reader->Extract(&FileIndex, 1, false, &extrackCb);
+  extrackCb.CheckResult();
+
+  return stream.TransferBufferOwnership();
+}
 
 void Archive::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 
@@ -386,15 +561,28 @@ void Archive::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 
 	uint32_t index = file->second.FileIndex;
 
-	int size = GetFileEntrysSize(file->second);
+	int size = GetFileSize(file->second.FileIndex);
 	 
-	ExtractCallback extract(index, size);
-	extract.AddRef();
+  SimpleOutSteam stream(size);
+  SingleExtractCallback extract(index, &stream);
 
 	Reader->Extract(&index, 1, false, &extract);
 
-
-	extract.LoadLuaChunk(L, (ArchiveName+FilePath.ToString()).c_str());
+  stream.LoadChunk(L, (ArchiveName+FilePath.ToString()).c_str());
 
 	return;
+}
+
+uint32_t Archive::GetFileCRC( int FileIndex ){
+  NWindows::NCOM::CPropVariant CRCResult;
+
+  if(Reader->GetProperty(FileIndex, kpidCRC, &CRCResult) != S_OK)throw exception("Failed to get crc of file");
+  
+  if(CRCResult.vt != VT_UI4)throw exception("File crc was not expected value type");
+
+  return CRCResult.ulVal;
+}
+
+void Archive::FileMounted( int FileIndex ){
+  HasMountedFiles = true;
 }

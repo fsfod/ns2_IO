@@ -1,12 +1,13 @@
 #pragma once
 #include "stdafx.h"
 #include <unordered_map>
+#include "EngineInterfaces.h"
 
 class FileSource;
 
 typedef std::tr1::unordered_map<std::string,FileSource*> FileSearchResult;
 
-class FileSource :luabind::wrap_base{
+class FileSource{
 
 public:
 	virtual ~FileSource(){}

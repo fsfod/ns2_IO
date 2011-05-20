@@ -14,6 +14,7 @@ class PathStringArg{
 			return CachedConvertedString;
 		}
 
+    std::string GetExtension() const;
 
 		std::string ToString() const{
 			return std::string(s, len);

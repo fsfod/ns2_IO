@@ -2,7 +2,7 @@
 #include "StringUtil.h"
 #include <boost/algorithm/string.hpp>
 
-using namespace std;
+//using namespace std;
 
 
 void WStringToUTF8STLString(const wstring& wstr, string& StringResult){
@@ -11,6 +11,22 @@ void WStringToUTF8STLString(const wstring& wstr, string& StringResult){
 
 void UTF16ToUTF8STLString(const wchar_t* wString, string& StringResult){
 	UTF16ToUTF8STLString(wString, wcslen(wString), StringResult);
+}
+
+string UTF8StringToWString(const wstring& wstr){
+  string ret;
+
+  UTF16ToUTF8STLString(wstr.c_str(), wstr.size(), ret);
+
+  return ret;
+}
+
+std::string WStringToUTF8STLString(const wstring& wstr){
+  std::string ret;
+
+  UTF16ToUTF8STLString(wstr.c_str(), wstr.size(), ret);
+
+  return ret;
 }
 
 void UTF16ToUTF8STLString(const wchar_t* wString, int WStringLength, string& StringResult){

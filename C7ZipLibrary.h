@@ -33,7 +33,8 @@ public:
 	long ReadStringProp(uint32_t index, uint32_t propID, std::wstring &res);
 	long ReadBoolProp(uint32_t index, uint32_t propID, bool &res);
 
-	FileSource* OpenArchive(const PlatformPath& ArchivePath);
+  Archive* OpenArchive(const PlatformPath& ArchivePath);
+  std::vector<std::string> GetSupportedFormats();
 
 	GetMethodPropertyFunc GetMethodProperty;
 	GetNumberOfMethodsFunc GetNumberOfMethods;
@@ -49,5 +50,4 @@ private:
 
 	//const C7ZipObjectPtrArray & GetInternalObjectsArray() { return m_InternalObjectsArray; }
 	bool LoadFormats();
-
 };

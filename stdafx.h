@@ -4,7 +4,7 @@
 //
 
 #pragma once
-#define _USE_32BIT_TIME_T
+//#define _USE_32BIT_TIME_T
 #include "targetver.h"
 
 //#define NOCOMM
@@ -76,20 +76,39 @@ extern "C" {
 	#include "lauxlib.h"
 }
 
+
 #include <cstdint>
 #include <tchar.h>
 
 #include <string>
+
 #include <vector>
+
 #include <map>
 #include <hash_map>
+
+//#define BOOST_HAS_HASH
 #include <boost/foreach.hpp>
 
 #define BOOST_FILESYSTEM_VERSION 3
 #define BOOST_FILESYSTEM_NO_DEPRECATED
 
+#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
+using boost::shared_ptr;
+
+using std::string;
+using std::wstring;
+using std::vector;
+using std::exception;
+
+
 #include <boost/filesystem.hpp>
 #include <boost/range/algorithm.hpp>
+#include <boost/range/adaptor/map.hpp>
+
+#include <boost/archive/xml_oarchive.hpp>
+#include <boost/archive/xml_iarchive.hpp>
 
 namespace boostfs = boost::filesystem;
 
@@ -104,13 +123,14 @@ namespace boostfs = boost::filesystem;
 
 using boost::replace;
 
+typedef WIN32_FIND_DATA PlatformFileStat;
 
 //see PathStringConverter.h for all the magic of PathStringArg
 //and also http://www.rasterbar.com/products/luabind/docs.html#adding-converters-for-user-defined-types
 
 typedef PathString::value_type PathChar;
-
 typedef std::wstring PlatformString;
+
 
 #include "PathStringArg.h"
 

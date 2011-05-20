@@ -58,11 +58,12 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>lua51.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>luabind.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
@@ -82,6 +83,8 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <AdditionalIncludeDirectories>.\include;.\luabind</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <ExceptionHandling>Sync</ExceptionHandling>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -89,7 +92,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <AdditionalDependencies>lua51.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>luabind.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent>
@@ -102,17 +105,21 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClInclude Include="7zip\CPP\Windows\PropVariant.h" />
     <ClInclude Include="Archive.h" />
     <ClInclude Include="C7ZipLibrary.h" />
+    <ClInclude Include="EngineInterfaces.h" />
+    <ClInclude Include="ExtractCache.h" />
     <ClInclude Include="LuaErrorWrapper.h" />
     <ClInclude Include="FileSource.h" />
     <ClInclude Include="NSRootDir.h" />
     <ClInclude Include="PathStringArg.h" />
     <ClInclude Include="PathStringConverter.h" />
+    <ClInclude Include="ResourceOverrider.h" />
     <ClInclude Include="SavedVariables.h" />
     <ClInclude Include="SourceDirectory.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StringUtil.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="NS_IOModule.h" />
+    <ClInclude Include="VC2005Compat.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="7zip\CPP\7zip\Common\FileStreams.cpp" />
@@ -121,10 +128,13 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClCompile Include="Archive.cpp" />
     <ClCompile Include="C7ZipLibrary.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="ExtractCache.cpp" />
+    <ClCompile Include="FileSourceHolder.cpp" />
     <ClCompile Include="LuaErrorWrapper.cpp" />
     <ClCompile Include="FileSource.cpp" />
     <ClCompile Include="NSRootDir.cpp" />
     <ClCompile Include="PathStringArg.cpp" />
+    <ClCompile Include="ResourceOverrider.cpp" />
     <ClCompile Include="SavedVariables.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -132,6 +142,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     </ClCompile>
     <ClCompile Include="StringUtil.cpp" />
     <ClCompile Include="NS_IOModule.cpp" />
+    <ClCompile Include="VC2005Compat.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="luabind.vcxproj">

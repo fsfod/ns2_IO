@@ -7,7 +7,7 @@ namespace boostfs = boost::filesystem;
 
 PlatformPath SavedVariables::SavedVariablesFolderPath(_T(""));
 
-using namespace std;
+//using namespace std;
 
 SavedVariables::SavedVariables(lua_State* L, const string& fname, luabind::table<luabind::object> const& tableNames, luabind::table<> const& containerTable) :
 	ExitAutoSave(true) {
@@ -22,8 +22,7 @@ SavedVariables::SavedVariables(lua_State* L, const string& fname, luabind::table
 	Init(L, fname, tableNames);
 }
 
-void SavedVariables::Init(lua_State* L, const string& fname, luabind::table<luabind::object> const& tableNames){
-	SavedVariableFile = NULL;
+void SavedVariables::Init(lua_State* L, const string& fname, luabind::table<luabind::object> const& tableNames){	SavedVariableFile = NULL;
 
 	if(luabind::type(tableNames) == LUA_TTABLE){
 		auto end = luabind::iterator();
@@ -151,7 +150,7 @@ void SavedVariables::Load(lua_State *L){
 	if(s != NULL){
 		throw exception(s);
 	}else{
-		throw runtime_error(string("Unknowned error while loading saved variables from ")+FileName.string());
+		throw std::runtime_error(string("Unknowned error while loading saved variables from ")+FileName.string());
 	}
 }
 

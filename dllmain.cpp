@@ -92,12 +92,19 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		def("GetGameString",  &LuaModule::GetGameString),
 		def("GetDirRootList",  &LuaModule::GetDirRootList),
 		def("GetCommandLineRaw", &LuaModule::GetCommandLineRaw),
-		def("OpenArchive", &LuaModule::OpenArchive, adopt(result)),
-		def("OpenArchive", &LuaModule::OpenArchive2, adopt(result)),
+    
+    def("GetSupportedArchiveFormats", &LuaModule::GetSupportedArchiveFormats),
+		def("OpenArchive", &LuaModule::OpenArchive),
+		def("OpenArchive", &LuaModule::OpenArchive2),
 		def("IsRootFileSource", &LuaModule::IsRootFileSource),
     def("LoadLuaDllModule", &LuaModule::LoadLuaDllModule),
+    def("MountArchiveFile", &LuaModule::MountArchiveFile),
+    def("MountMapArchive", &LuaModule::MountMapArchive),
+    def("UnMountMapArchive", &LuaModule::UnMountMapArchive),
+    //def("ExtractResourceToPath", &LuaModule::ExtractResource),
 		
-		FileSource::RegisterClass()
+		FileSource::RegisterClass(),
+    class_<Archive, FileSource>("ArchiveFileSource")
 		//class_<NSRootDir, bases<FileSource> >("RootDirectory")
 	];
 
