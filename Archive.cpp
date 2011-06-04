@@ -8,15 +8,15 @@
 #include "7zip/CPP/7zip/IPassword.h"
 
 #include "7zip/CPP/Common/MyCom.h"
+#include "7zHelpers.h"
 
-#include <boost/algorithm/string.hpp>  
-#include <boost/iostreams/device/mapped_file.hpp>
-#include <boost/iostreams/stream.hpp>
+#include <boost/algorithm/string.hpp>
+#include "ResourceOverrider.h"
 
 //using namespace std;
 using namespace boost::iostreams;
 
-Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader) : HasMountedFiles(false), LuaPointer(){
+Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader) : MountedFileCount(0), LuaPointer(){
 
 	Reader = reader;
 	ArchivePath = archivepath;
@@ -41,16 +41,15 @@ Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader
 	AddFilesToDirectorys();
 }
 
+Archive::~Archive(){
+  Reader->Close();
+}
+
 boost::shared_ptr<FileSource> Archive::GetLuaPointer(){
-  
+
   //recreate our pointer if the previous lua shared_ptr was GC'ed
   if(LuaPointer.use_count() == 0){
-    
-    boost::shared_ptr<FileSource> ptr(this, [](Archive* arc){
-                                       if(!arc->HasMountedFiles){
-                                         delete arc;
-                                       }
-                                     });
+    boost::shared_ptr<FileSource> ptr(this, [](Archive* arc){ arc->CheckDelete(); });
     LuaPointer = ptr;
 
     return ptr;
@@ -128,11 +127,6 @@ void Archive::AddFilesToDirectorys(){
 			Parent->Files[path.substr(index+1)] = FileEntry(node.second);
 		}
 	}
-}
-
-
-Archive::~Archive(void){
-  Reader->Close();
 }
 
 bool Archive::FileExists(const PathStringArg& path){
@@ -253,275 +247,28 @@ uint32_t Archive::GetFileSize(int FileIndex){
 }
 
 bool Archive::GetModifiedTime(const PathStringArg& Path, int32_t& Time){
+  
+  int FileIndex = GetFileIndex(Path.GetNormalizedPath());
+
+  if(FileIndex == -1)return false;
+
+  NWindows::NCOM::CPropVariant prop;
+
+  if(Reader->GetProperty(FileIndex, kpidMTime, &prop) != S_OK){
+    throw std::exception("Archive Does not support Modified time");
+  }
+
+  if(prop.vt == VT_FILETIME){
+    uint64_t ftime = prop.filetime.dwLowDateTime | ((UInt64)prop.filetime.dwHighDateTime << 32);
+
+    Time = (int32_t)((ftime-116444736000000000)/10000000);
+  }else{
+    throw std::exception("Modified time of archive format was return in an unexpected format");
+  }
+
 	return true;
 }
 
-class SimpleOutSteam : public ISequentialOutStream, public CMyUnknownImp{
-
-public:
-	MY_UNKNOWN_IMP
-
-	SimpleOutSteam(): Size(0), Capacity(0), Position(0), buffer(NULL){
-	}
-
-	SimpleOutSteam(int size): Size(0), Capacity(0), Position(0), buffer(NULL){
-		SetSize(size);
-	}
-
-	virtual ~SimpleOutSteam(){
-		if(buffer != NULL){
-			delete buffer;
-			buffer = NULL;
-		}
-	}
-
-  void* TransferBufferOwnership(){
-    
-    if(buffer == NULL){
-      throw exception("Cannot transfer a NULL buffer");
-    }
-
-    void* ret = buffer;
-     buffer = NULL;
-     Size = Capacity = Position = 0;
-
-    return ret;
-  }
-
-	STDMETHOD(Write)(const void *data, UInt32 dataSize, UInt32 *processedSize){
-		if(Position+(int)dataSize > Capacity){
-			SetSize(Capacity*2);
-		}
-
-		memcpy_s(buffer+Position, Capacity-Position, data, dataSize);
-
-		*processedSize = dataSize;
-
-		Position += dataSize;
-
-		return S_OK;
-	}
-	
-	STDMETHOD(SetSize)(Int64 newSize){
-		
-		_ASSERT(newSize < INT32_MAX);
-
-		if(newSize > Capacity){
-			char* old = buffer;
-
-			buffer = new char[(int)newSize];
-
-			if(Size != 0){
-				memcpy_s(buffer, (int)newSize, old, Size);
-			}
-
-			Capacity = (int)newSize;
-
-			if(old != NULL)delete old;
-		}
-
-		Size = (int)newSize;
-
-		if(Position > Size){
-			Position = Size;
-		}
-
-		return S_OK;
-	}
-
-	int LoadChunk(lua_State* L, const char* ChunkName){
-		return luaL_loadbuffer(L, buffer, Position, ChunkName);
-	}
-
-private:
-	char* buffer;
-
-	int Size, Position, Capacity;
-
-	friend class ExtractCallback;
-};
-
-class MemMappedOutSteam : public ISequentialOutStream, public CMyUnknownImp{
-
-public:
-  MY_UNKNOWN_IMP
-
-  MemMappedOutSteam(): Size(0), Position(0), buffer(NULL){
-  }
-
-  MemMappedOutSteam(PlatformPath path, int size): Size(size), Position(0), buffer(NULL){
-    basic_mapped_file_params<wstring> params(path.wstring());
-    params.new_file_size = size;
-    params.flags = mapped_file_base::readwrite;
-
-    mappedfile = mapped_file_sink(params);
-    buffer = mappedfile.data();
-  }
-
-  virtual ~MemMappedOutSteam(){
-    mappedfile.close();
-  }
-
-  STDMETHOD(Write)(const void *data, UInt32 dataSize, UInt32 *processedSize){
-    _ASSERT(Position+(int)dataSize <= Size);
-
-    memcpy_s(buffer+Position, Size-Position, data, dataSize);
-    Position += dataSize;
-
-    return S_OK;
-  }
-
-  STDMETHOD(SetSize)(Int64 newSize){
-    _ASSERT(newSize <= Size);
-
-    return S_OK;
-  }
-
-private:
-  mapped_file_sink mappedfile;
-  char* buffer;
-  int Size, Position;
-
-  friend class ExtractCallback;
-};
-
-class SingleExtractCallback: public IArchiveExtractCallback,
-  public CMyUnknownImp{
-
-public:
-  MY_UNKNOWN_IMP
-
-  SingleExtractCallback(int index, ISequentialOutStream *steam) : 
-    FileIndex(index), Stream(steam), Result(-1){
-
-    steam->AddRef();
-    steam->AddRef();
-
-    AddRef();
-    AddRef();
-  }
-
-  // IProgress
-  STDMETHOD(SetTotal)(UInt64 size){
-    return S_OK;
-  }
-
-  STDMETHOD(SetCompleted)(const UInt64 *completeValue){
-    return S_OK;
-  }
-
-  // IArchiveExtractCallback
-  STDMETHOD(GetStream)(UInt32 index, ISequentialOutStream **outStream, Int32 askExtractMode){
-    _ASSERT(index == FileIndex);
-
-    if(askExtractMode != NArchive::NExtract::NAskMode::kExtract)return S_OK;
-
-    *outStream = Stream;
-
-    return S_OK;
-  }
-
-  STDMETHOD(PrepareOperation)(Int32 askExtractMode){
-    return S_OK;
-  }
-
-  void CheckResult(){
-    switch(Result){
-      case NArchive::NExtract::NOperationResult::kOK:
-      break;
-
-      case NArchive::NExtract::NOperationResult::kUnSupportedMethod:
-        throw exception("error extracting file unsupported compressing method used on file");
-
-      case NArchive::NExtract::NOperationResult::kCRCError:
-        throw exception("error extracting file crc mismatch");
-
-      case NArchive::NExtract::NOperationResult::kDataError:
-        throw exception("error extracting file unknown data error");
-    }
-  }
-
-  //we delay throwing an error from this result till CheckResult is called
-  STDMETHOD(SetOperationResult)(Int32 OperationResult){
-    _ASSERT(Result == -1);
-    Result = OperationResult;
-    return S_OK;
-  }
-
-
-private:
-  ISequentialOutStream* Stream;
-  int Result;
-  int FileIndex;
-};
-/*
-class ExtractCallback: public IArchiveExtractCallback,
-	public CMyUnknownImp{
-
-public:
-	MY_UNKNOWN_IMP
-
-	ExtractCallback(int index, int size) : FileIndex(index), stream(size), Result(-1){
-		stream.AddRef();
-		stream.AddRef();
-	}
-
-		// IProgress
-	STDMETHOD(SetTotal)(UInt64 size){
-		return S_OK;
-	}
-	STDMETHOD(SetCompleted)(const UInt64 *completeValue){
-		return S_OK;
-	}
-
-	// IArchiveExtractCallback
-	STDMETHOD(GetStream)(UInt32 index, ISequentialOutStream **outStream, Int32 askExtractMode){
-		_ASSERT(index == FileIndex);
-
-		if(askExtractMode != NArchive::NExtract::NAskMode::kExtract)return S_OK;
-
-		*outStream = &stream;
-
-		return S_OK;
-	}
-
-	STDMETHOD(PrepareOperation)(Int32 askExtractMode){
-		return S_OK;
-	}
-
-	int LoadLuaChunk(lua_State* L, const char* ChunkName){
-		switch(Result){
-    case NArchive::NExtract::NOperationResult::kOK:
-      break;
-
-    case NArchive::NExtract::NOperationResult::kUnSupportedMethod:
-      throw exception("error extracting file unsupported compressing method used on file");
-
-    case NArchive::NExtract::NOperationResult::kCRCError:
-      throw exception("error extracting file crc mismatch");
-
-
-    case NArchive::NExtract::NOperationResult::kDataError:
-      throw exception("error extracting file unknown data error");
-    }
-
-		return stream.LoadChunk(L, ChunkName);
-	}
-
-	//we delay throwing an error from this result till LoadLuaChunk is called
-	STDMETHOD(SetOperationResult)(Int32 OperationResult){
-		_ASSERT(Result == -1);
-		Result = OperationResult;
-	 return S_OK;
-	}
-
-	SimpleOutSteam stream;
-
-private:
-	int Result;
-	int FileIndex;
-};
-*/
 void Archive::ExtractFile(uint32_t FileIndex, const PlatformPath& FilePath){
 
   if(boostfs::exists(FilePath)){
@@ -583,6 +330,46 @@ uint32_t Archive::GetFileCRC( int FileIndex ){
   return CRCResult.ulVal;
 }
 
-void Archive::FileMounted( int FileIndex ){
-  HasMountedFiles = true;
+extern ResourceOverrider* OverrideSource;
+
+void Archive::MountFile(const PathStringArg& FilePath, const PathStringArg& DestinationPath){
+
+  int index = GetFileIndex(FilePath.GetNormalizedPath());
+
+  if(index == -1)throw exception("Could not find the file specified in the archive");
+
+  OverrideSource->MountFile(DestinationPath.GetNormalizedPath(), this, index);
+}
+
+void Archive::MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath){
+  
+  vector<pair<string, int>> fileList;
+
+  CreateMountList(BasePath.GetNormalizedPath(), DestinationPath.GetNormalizedPath(), fileList);
+
+  OverrideSource->MountFilesList(this, fileList, true);
+}
+
+void Archive::CreateMountList(const std::string& BasePath, const std::string& path, vector<pair<string, int>>& fileList){
+
+  int pathStart = BasePath.size();
+
+  if(pathStart != 0 && BasePath.back() != '/' && BasePath.back() != '\\')pathStart++;
+
+  BOOST_FOREACH(const FileNode& file, PathToFile){
+    const string& destpath = pathStart != 0 ? file.first.substr(pathStart)  : file.first;
+
+    if(BasePath.empty() || file.first.compare(0, BasePath.size(),BasePath.c_str()) == 0){
+      fileList.push_back(pair<string, int>(path.empty() ? destpath  : path+destpath, file.second.FileIndex));
+    }
+  }
+
+}
+
+M4::File* Archive::GetEngineFile( const string& path ){
+  int FileIndex = GetFileIndex(path);
+
+  if(FileIndex == -1)return NULL;
+
+  return new ArchiveFile(this, FileIndex);
 }

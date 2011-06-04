@@ -7,12 +7,11 @@
 //using namespace std;
 
 CacheEntry::CacheEntry(const PlatformPath& filepath, uint32_t CRC): FileCRC(CRC), ContainingArchive(NULL){
-  PlatformFileStat FileInfo;
-  ExtractCache::GetFileInfo(filepath, FileInfo);
+  FileInfo fileInfo;
+  ExtractCache::GetFileInfo(filepath, fileInfo);
 
-  FileSize = FileInfo.nFileSizeLow;
-  ((unsigned int*)&FileSize)[1] = FileInfo.nFileSizeHigh;
-  ModifedTime = GetModifedTimeFromFileInfo(FileInfo);
+  FileSize = fileInfo.GetFileSize();
+  ModifedTime = fileInfo.GetModifedTime();
 }
 
 static const char* ExtensionList[] = {".png", ".dds", ".model", ".material", ".cinematic"};
@@ -67,7 +66,8 @@ void ExtractCache::Load( const PlatformPath& cacheDirectory,const PlatformPath& 
   CacheRecords >> make_nvp("ExtractFileCache", *this);
 }
 
-void ExtractCache::GetFileInfo(const PlatformPath& Path, PlatformFileStat& FileInfo){
+void ExtractCache::GetFileInfo( const PlatformPath& Path, FileInfo& FileInfo )
+{
 
  HANDLE result = FindFirstFileEx(Path.c_str(), FindExInfoStandard, &FileInfo, FindExSearchNameMatch, NULL, 0);
 
@@ -84,10 +84,10 @@ bool ExtractCache::CacheEntryStillValid(const std::pair<const string, CacheEntry
 
   if(!boostfs::exists(entryPath))return false;
 
-  PlatformFileStat FileInfo;
-  GetFileInfo(entryPath, FileInfo);
+  FileInfo fileInfo;
+  GetFileInfo(entryPath, fileInfo);
 
-  return entry.second == FileInfo;
+  return entry.second == fileInfo;
 }
 
 void ExtractCache::RemoveExtractedResource(const PathStringArg& path){

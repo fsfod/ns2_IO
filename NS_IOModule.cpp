@@ -16,6 +16,8 @@
 #include <fstream>
 
 #include "ResourceOverrider.h"
+#include "SourceManager.h"
+
 using namespace  std;
 
 PlatformPath NSRootPath(_T(""));
@@ -87,10 +89,7 @@ void LuaModule::Initialize(lua_State *L){
   StaticInit(L);
 }
 
-M4FileSystem* (__cdecl *GetFileSystem)() =0;
-typedef void ( M4FileSystem::*AddSourcePtr)(EngineFileSource*, int flags);
-
-
+/*
 void LuaModule::SetupFilesystemMounting(){
 
   HMODULE engine = GetModuleHandleA("engine.dll");
@@ -99,34 +98,22 @@ void LuaModule::SetupFilesystemMounting(){
     throw exception("Failed to get engine.dll handle");
   }
 
-  //void* FileSystemDtor =  GetProcAddress(engine, "??1FileSystem@M4@@EAE@XZ");
-  
-  GetFileSystem =  (M4FileSystem* (__cdecl *)())GetProcAddress(engine, "?Get@?$Singleton@VFileSystem@M4@@@M4@@SAAAVFileSystem@2@XZ");
-  
-  AddSourcePtr FileSystemAddSource;
-  *(void**)(&FileSystemAddSource) = (void*)GetProcAddress(engine, "?AddSource@FileSystem@M4@@QAEXPAVFileSource@2@I@Z");  
-  
-  M4FileSystem* FileSystem = GetFileSystem();
-  
-  FileListType& FileSystemList = FileSystem->FileList;
-  
-  //char buff[300];
-  //_snprintf(buff, sizeof(buff),"list size %i  sizeif(string) %i", listsize, sizeof(VC05string));//((char*)&FileSystemList->_Myfirst)-FileSystem, ((char*)&FileSystemList->_Mylast)-FileSystem);
-  
-  //OutputDebugStringA(buff);
-  
+  M4::FileSystem& FileSystem = M4::Singleton<M4::FileSystem>::Get();
+
   OverrideSource = new ResourceOverrider();
-  
+
   //make sure theres space for ResourceOverrider by adding a dummy
-  (FileSystem->*FileSystemAddSource)(nullptr, 1);
-  
+  FileSystem.AddSource(nullptr, 1);
+ 
+  FileListType& FileSystemList = FileSystem.FileList;
+
   int listsize = FileSystemList.size();
   
   //shift everything up a slot so we can add our override source at the start
-
   FileSystemList.pop_back();
-  FileSystemList.push_front(std::pair<int, EngineFileSource*>(1, OverrideSource));
+  FileSystemList.push_front(std::pair<int, M4::FileSource*>(1, OverrideSource));
 }
+*/
 
 bool FirstLoad = true;
 
@@ -167,7 +154,7 @@ void LuaModule::StaticInit(lua_State* L){
 
     if(SevenZip != NULL && GameIsZip){
       try{
-        RootDirs.push_back(SevenZip->OpenArchive(GameStringPath));
+        RootDirs.push_back(SourceManager::OpenArchive(GameStringPath));
       }catch(exception e){
         string msg = "error while opening archive set with -game:";
         msg += e.what();
@@ -182,7 +169,7 @@ void LuaModule::StaticInit(lua_State* L){
    if(SevenZip == NULL) PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
   }else{
     if(!GameStringPath.empty()){
-      ModDirectory = new DirectoryFileSource(GameStringPath, "", true);
+      ModDirectory = new DirectoryFileSource(GameStringPath, "");
       RootDirs.push_back(ModDirectory);
     } 
   }
@@ -196,7 +183,7 @@ void LuaModule::StaticInit(lua_State* L){
     ProcessDirectoriesTXT(directorystxt);
   }
 
-  SetupFilesystemMounting();
+  SourceManager::SetupFilesystemMounting();
 
  // LoadExtractCache();
 }
@@ -250,8 +237,8 @@ void LuaModule::ProcessDirectoriesTXT(PlatformPath directorystxt){
 
 		if(!path.has_root_name())path = NSRootPath/path;
 			if(boostfs::is_directory(path)){
-				RootDirs.push_back(new DirectoryFileSource(path/"ns2", "ns2", true));
-				RootDirs.push_back(new DirectoryFileSource(path/"core", "core", true));
+				RootDirs.push_back(new DirectoryFileSource(path/"ns2", "ns2"));
+				RootDirs.push_back(new DirectoryFileSource(path/"core", "core"));
 			}
 	}
 }
@@ -519,19 +506,18 @@ boost::shared_ptr<FileSource> LuaModule::OpenArchive(lua_State* L, FileSource* C
 		throw exception("Cannot find Archive to open");
 	}
 
-	return SevenZip->OpenArchive(FullPath)->GetLuaPointer();
+	return SourceManager::OpenArchive(FullPath)->GetLuaPointer();
 }
 
 luabind::object LuaModule::GetSupportedArchiveFormats(lua_State *L) {
 
   auto formats = SevenZip->GetSupportedFormats();
 
-  lua_createtable(L, RootDirs.size(), 0);
+  lua_createtable(L, 0, RootDirs.size()*2);
   luabind::object table = luabind::object(luabind::from_stack(L,-1));
 
   for(uint32_t i = 0; i < formats.size() ; i++){
-    //strip the starting dot
-    table[i+1] = formats[i].c_str()+1;
+    table[formats[i]] = true;
   }
 
   return table;
@@ -539,7 +525,7 @@ luabind::object LuaModule::GetSupportedArchiveFormats(lua_State *L) {
 
 bool LuaModule::IsRootFileSource(FileSource* source){
 
-	for(int i = 0; i < RootDirs.size() ; i++){
+	for(int i = 0; i < (int)RootDirs.size() ; i++){
 		if(&RootDirs[i] == source){
 			return true;
 		}
@@ -640,22 +626,8 @@ void LuaModule::UnMountMapArchive(){
   OverrideSource->UnmountMapArchive();
 }
 
-void LuaModule::MountArchiveFile(FileSource* Source, const PathStringArg& FileInArchive, const PathStringArg& DestinationPath){
-
-  ConvertAndValidatePath(DestinationPath);
-  Archive *ArchiveSource = dynamic_cast<Archive *>(Source);
-
-  if (NULL == ArchiveSource){
-    throw exception("FileSource is not an Archive file sources");
-  }
-
-  if(FileInArchive.GetExtension() != DestinationPath.GetExtension())throw exception("The destination file needs to have the same extension as the file from the archive");
-
-  int index = ArchiveSource->GetFileIndex(FileInArchive.GetNormalizedPath());
-
-  if(index == -1)throw exception("Could not find the file specified in the archive");
-
-  OverrideSource->AddFileOverride(DestinationPath.GetNormalizedPath(), ArchiveSource, index);
+bool LuaModule::UnmountFile(const PathStringArg& path){
+  return OverrideSource->RemoveFileOverride(path.GetNormalizedPath());
 }
 
 void LuaModule::ExtractResource(FileSource* Source, const PathStringArg& FileInArchive, const PathStringArg& DestinationPath){
@@ -673,7 +645,7 @@ void LuaModule::ExtractResource(FileSource* Source, const PathStringArg& FileInA
 
   if(index == -1)throw exception();
 
-  OverrideSource->AddFileOverride(DestinationPath.GetNormalizedPath(), ArchiveSource, index);
+  OverrideSource->MountFile(DestinationPath.GetNormalizedPath(), ArchiveSource, index);
 
  // ExtractedFileCache.ExtractResourceToPath(ArchiveSource, FileInArchive.GetNormalizedPath(), DestinationPath);
 }

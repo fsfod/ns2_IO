@@ -51,7 +51,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;TESTLUAMODULE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;_USRDLL;TESTLUAMODULE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.\include;.\luabind</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -63,8 +63,10 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>luabind.dll</DelayLoadDLLs>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
@@ -77,14 +79,14 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;TESTLUAMODULE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;_USRDLL;TESTLUAMODULE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <AdditionalIncludeDirectories>.\include;.\luabind</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <ExceptionHandling>Sync</ExceptionHandling>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -92,8 +94,10 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>luabind.dll</DelayLoadDLLs>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
@@ -101,12 +105,14 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="7zHelpers.h" />
     <ClInclude Include="7ZipFormatInfo.h" />
     <ClInclude Include="7zip\CPP\Windows\PropVariant.h" />
     <ClInclude Include="Archive.h" />
     <ClInclude Include="C7ZipLibrary.h" />
     <ClInclude Include="EngineInterfaces.h" />
     <ClInclude Include="ExtractCache.h" />
+    <ClInclude Include="FileInfo.h" />
     <ClInclude Include="LuaErrorWrapper.h" />
     <ClInclude Include="FileSource.h" />
     <ClInclude Include="NSRootDir.h" />
@@ -115,6 +121,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClInclude Include="ResourceOverrider.h" />
     <ClInclude Include="SavedVariables.h" />
     <ClInclude Include="SourceDirectory.h" />
+    <ClInclude Include="SourceManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StringUtil.h" />
     <ClInclude Include="targetver.h" />
@@ -129,13 +136,13 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClCompile Include="C7ZipLibrary.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="ExtractCache.cpp" />
-    <ClCompile Include="FileSourceHolder.cpp" />
     <ClCompile Include="LuaErrorWrapper.cpp" />
     <ClCompile Include="FileSource.cpp" />
     <ClCompile Include="NSRootDir.cpp" />
     <ClCompile Include="PathStringArg.cpp" />
     <ClCompile Include="ResourceOverrider.cpp" />
     <ClCompile Include="SavedVariables.cpp" />
+    <ClCompile Include="SourceManager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -148,6 +155,14 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ProjectReference Include="luabind.vcxproj">
       <Project>{d59c26e7-cf21-45a3-8710-3b4ad83fd05d}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="engine.def">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lib /DEF:engine.def /machine:x86</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">engine.lib</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /DEF:engine.def /machine:x86</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">engine.lib</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -2,6 +2,7 @@
 #include "ResourceOverrider.h"
 #include "StringUtil.h"
 #include "C7ZipLibrary.h"
+#include "NSRootDir.h"
 #include <boost/iostreams/device/mapped_file.hpp>
 
 //using namespace std;
@@ -9,7 +10,7 @@ using namespace boost::iostreams;
 
 extern C7ZipLibrary* SevenZip;
 
-EngineFile* ResourceOverrider::OpenFile(const VC05string& path, bool something){
+M4::File* ResourceOverrider::OpenFile(const VC05string& path, bool something){
 
   string NormPath = NormalizedPath(path.c_str(), path.size());
 
@@ -29,23 +30,59 @@ EngineFile* ResourceOverrider::OpenFile(const VC05string& path, bool something){
 
 bool ResourceOverrider::GetFileExists(const VC05string& path) {
 
-  if(MapArchive != NULL){ 
-   string NormPath = NormalizedPath(path.c_str(), path.size());
+  string NormPath = NormalizedPath(path.c_str(), path.size());
 
-    int fileIndex = MapArchive->GetFileIndex(NormPath);
+  if(MapArchive != NULL && MapArchive->GetFileIndex(NormPath) != -1){ 
+    return true;
+  }
 
-    if(fileIndex != -1){
-      return MapArchive->GetEngineFile(fileIndex);
+  return FileOverrides.find(NormPath) != FileOverrides.end();
+}
+
+void ResourceOverrider::MountMapArchive(Archive* archive){
+  archive->FileMounted(-1);
+  MapArchive = archive;
+}
+
+int ResourceOverrider::UnmountGroup(int GroupId){
+  int count = 0;
+
+  for(auto it = FileOverrides.begin(); it != FileOverrides.end(); ) {
+    if(it->second.GetGroupId() == GroupId) {
+      ChangedFiles.push_back(VC05string(it->first));
+      FileOverrides.erase(it++);
+      count++;
+    }else{
+      ++it;
     }
   }
 
-  return false;
+  return count;
 }
 
-void ResourceOverrider::MountMapArchive( Archive* archive )
-{
-  archive->FileMounted(-1);
-  MapArchive = archive;
+void ResourceOverrider::UnmountFilesFromArchive(Archive* source){
+
+  for(auto it = FileOverrides.begin(); it != FileOverrides.end(); ) {
+    if(it->second.FromArchive(source)) {
+      ChangedFiles.push_back(VC05string(it->first));
+
+      FileOverrides.erase(it++);
+    }else{
+      ++it;
+    }
+  }
+}
+
+
+void ResourceOverrider::GetChangedFiles(std::vector<VC05string>& ChangedFileList){
+
+  if(ChangedFiles.size() != 0)return;
+
+  BOOST_FOREACH(VC05string& file, ChangedFiles){
+    ChangedFileList.push_back(std::move(file));
+  }
+
+  ChangedFiles.clear();
 }
 
 void* OverrideEntry::Lock(uint32_t start, uint32_t size){
@@ -54,34 +91,45 @@ void* OverrideEntry::Lock(uint32_t start, uint32_t size){
 }
 
 void* OverrideEntry::Lock(){
-  if(Data == NULL){
-    if(IsInArchive()){
-      Data = ContainingArchive->ExtractFileToMemory(FileIndex);
-    }else{
-      MappedFile = new mapped_file(OverriderFile.wstring());
 
-      Data = MappedFile->data();
+  if(Data == NULL){
+    try{
+      if(IsInArchive()){
+        Data.reset((char*)ContainingArchive->ExtractFileToMemory(FileIndex));
+      }else{
+        MappedFile = new mapped_file(OverriderFile.wstring());
+
+        Data.reset((char*)MappedFile->data());
+      }
+    }catch(exception e){
+      return NULL;
     }
   }
 
-  return Data;
+  return Data.get();
 }
 
 void OverrideEntry::UnLock(){
   if(IsInArchive()){
-    delete Data;
+    Data.reset();
   }else{
     if(MappedFile != nullptr)delete MappedFile;
     MappedFile = nullptr;
   }
-
-  Data = nullptr;
 }
 
 uint32_t OverrideEntry::GetLength(){
   if(IsInArchive()){
-    return ContainingArchive->GetFileSize(FileIndex);;
+    return ContainingArchive->GetFileSize(FileIndex);
   }else{
     return boostfs::file_size(OverriderFile);
+  }
+}
+
+M4::File* OverrideEntry::MakeEngineFileObj(){
+  if(IsInArchive()){
+    return ContainingArchive->GetEngineFile(FileIndex);
+  }else{
+    return new DirEngineFile(OverriderFile);
   }
 }

@@ -1,6 +1,5 @@
 #include "StdAfx.h"
 #include "StringUtil.h"
-#include <boost/algorithm/string.hpp>
 
 //using namespace std;
 
@@ -91,9 +90,12 @@ void InplaceNormalizePath(PathString& path){
 	replace(path, '\\', '/');
 }
 
-std::string NormalizedPath(BSTR s){
+std::string NormalizedPath(const wchar_t* pathstr){
 	
-	int len = wcslen(s);
+	int len = wcslen(pathstr);
+
+  //just so we have a pointer we can increment
+  wchar_t* s = const_cast<wchar_t*>(pathstr);
 
 	if(s[0]  == '/' || s[0]  == '\\'){
 		s = s+1;

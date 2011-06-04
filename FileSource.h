@@ -20,6 +20,13 @@ public:
 	virtual bool GetModifiedTime(const PathStringArg& Path, int32_t& Time) = 0;
 	virtual void LoadLuaFile(lua_State* L, const PathStringArg& path) = 0;
 
+  virtual void MountFile(const PathStringArg& FilePath, const PathStringArg& DestinationPath) = 0;
+  virtual void MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath) = 0;
+  
+  //both these must be passed normalized paths
+  virtual M4::File* GetEngineFile(const string& path) = 0;
+  virtual bool FileExist(const string& path) = 0;
+
 	virtual const std::string& get_Path() = 0;
 
 	static luabind::scope RegisterClass();

@@ -15,6 +15,10 @@ class PathStringArg{
 		}
 
     std::string GetExtension() const;
+    
+    const char* c_str() const{
+      return s;
+    }
 
 		std::string ToString() const{
 			return std::string(s, len);

@@ -42,6 +42,14 @@ public:
     Init(other.c_str(), other.size());
   }
 
+  VC05string(const char* s){
+    Init(s, strlen(s));
+  }
+
+  VC05string(VC05string&& other):length(0), capacity(16), buffptr(NULL){
+    *this = std::move(other);
+  }
+
   VC05string() :length(0), capacity(16), buffptr(NULL){
   }
 
@@ -57,8 +65,8 @@ public:
     return std::string(c_str(), length);
   }
 
-  const std::string* GetTempVC10Ptr(){
-    return reinterpret_cast<const std::string*>(&buffptr);
+  const std::string& GetTempVC10Ptr() const{
+    return reinterpret_cast<const std::string&>(*(std::string*)&buffptr);
   }
 
   VC05string& VC05string::operator =(const std::string& other){
@@ -71,6 +79,25 @@ public:
     
     if(this != &other){
       SetNewString(other.c_str(), other.size());
+    }
+
+    return *this; 
+  }
+
+  VC05string& VC05string::operator =(VC05string&& other){ 
+
+    if(this != &other){
+      if(other.size() > 16){
+        if(capacity > 16)VC2005RunTime::DeleteOperator(buffptr);
+
+        buffptr = other.buffptr;
+      }else{
+        SetNewString(other.c_str(), other.size());
+      }
+
+      other.buffptr = NULL;
+      other.capacity = 16;
+      other.length = 0;
     }
 
     return *this; 
@@ -108,6 +135,8 @@ template  <typename T> class VC05Vector{
 public:
 
   typedef T&  reference;
+  typedef T&&  rvalue_reference;
+  typedef T*  pointer;
 
   size_t size() const{
     return (Last-First);
@@ -115,6 +144,38 @@ public:
 
   size_t capacity() const{
     return (End-First);
+  }
+
+  void CheckSpace(){
+    if(size()+1 > capacity()){
+      reallocate(size()*2);
+    }
+  }
+
+  void reallocate(size_t newsize){
+    _ASSERT(newsize != 0);
+
+    int CurrentCount = size();
+
+    pointer NewArray = reinterpret_cast<pointer>(VC2005RunTime::NewOperator(newsize));
+    memcpy(NewArray, First, CurrentCount*sizeof(T));
+    VC2005RunTime::DeleteOperator(First);
+
+    First = NewArray;
+    End = NewArray+newsize;
+    Last = NewArray+CurrentCount;
+  }
+
+  void push_back(rvalue_reference value){
+    CheckSpace();
+   // init the element with placement new
+    new (&++Last)T(value);
+  }
+
+  void push_back(reference value){
+    CheckSpace();
+    //init the element with placement new
+    new (&++Last)T(value);
   }
 
   T& operator [](int i){

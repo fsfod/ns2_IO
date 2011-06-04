@@ -100,30 +100,25 @@ using boost::shared_ptr;
 using std::string;
 using std::wstring;
 using std::vector;
+using std::pair;
 using std::exception;
 
 
 #include <boost/filesystem.hpp>
 #include <boost/range/algorithm.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/archive/xml_iarchive.hpp>
 
 namespace boostfs = boost::filesystem;
 
-#if defined(UNICODE)
-	#define UnicodePathString
-	typedef boostfs::path PlatformPath;
-	typedef	std::string PathString;
-#else
-	typedef boostfs::path PlatformPath;
-	typedef	std::string PathString;
-#endif
+typedef boostfs::path PlatformPath;
+typedef	std::string PathString;
+
 
 using boost::replace;
-
-typedef WIN32_FIND_DATA PlatformFileStat;
 
 //see PathStringConverter.h for all the magic of PathStringArg
 //and also http://www.rasterbar.com/products/luabind/docs.html#adding-converters-for-user-defined-types

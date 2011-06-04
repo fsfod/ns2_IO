@@ -2,6 +2,7 @@
 
 #include "stdafx.h"
 #include "Archive.h"
+#include "FileInfo.h"
 #include <boost/serialization/map.hpp>
 
 using namespace boost::serialization;
@@ -42,14 +43,11 @@ public:
     return ((*(uint64_t*)&fileinfo.ftLastWriteTime)-116444736000000000)/10000000;
   }
 
-  bool operator ==(const PlatformFileStat& filestat) const {
-    uint64_t size = filestat.nFileSizeLow;
-    ((unsigned int*)&size)[1] = filestat.nFileSizeHigh;
-
-    return FileSize == size && (ModifedTime == 0 || ModifedTime == GetModifedTimeFromFileInfo(filestat));
+  bool operator ==(const FileInfo& filestat) const {
+    return FileSize == filestat.GetFileSize() && (ModifedTime == 0 || ModifedTime == filestat.GetModifedTime());
   }
 
-  bool operator !=(const PlatformFileStat& filestat) const {
+  bool operator !=(const FileInfo& filestat) const {
     return !(*this == filestat);
   }
 
@@ -72,7 +70,7 @@ public:
 
   void ExtractResourceToPath(Archive* arch, std::string ArchiveFilePath, const PathStringArg& destinationPath);
   bool CacheEntryStillValid(const std::pair<const std::string, CacheEntry>& entry);
-  static void GetFileInfo(const PlatformPath& Path, PlatformFileStat& FileInfo);
+  static void GetFileInfo(const PlatformPath& Path, FileInfo& FileInfo);
 
   template<class Archive>void serialize(Archive & ar, const unsigned int version){
     using namespace boost::serialization;

@@ -6,6 +6,7 @@
 #include <luabind/adopt_policy.hpp>
 #include "PathStringConverter.h"
 #include <boost/system/system_error.hpp>
+#include "SourceManager.h"
 #include <delayimp.h>
 
 HMODULE LibaryHandle = 0;
@@ -98,12 +99,15 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		def("OpenArchive", &LuaModule::OpenArchive2),
 		def("IsRootFileSource", &LuaModule::IsRootFileSource),
     def("LoadLuaDllModule", &LuaModule::LoadLuaDllModule),
-    def("MountArchiveFile", &LuaModule::MountArchiveFile),
     def("MountMapArchive", &LuaModule::MountMapArchive),
     def("UnMountMapArchive", &LuaModule::UnMountMapArchive),
+    def("MountSource", &SourceManager::MountSource),
     //def("ExtractResourceToPath", &LuaModule::ExtractResource),
 		
 		FileSource::RegisterClass(),
+    class_<DirectoryFileSource, FileSource>("DirectoryFileSource")
+    .def("CreateChildSource", &DirectoryFileSource::CreateChildSource),
+
     class_<Archive, FileSource>("ArchiveFileSource")
 		//class_<NSRootDir, bases<FileSource> >("RootDirectory")
 	];

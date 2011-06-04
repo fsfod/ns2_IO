@@ -91,5 +91,7 @@ luabind::scope FileSource::RegisterClass(){
 		.def("DateModifed", &FileSource::Lua_GetModifedTime)
 		.def("FindDirectorys", &FileSource::Lua_FindDirectorys)
 		.def("FindFiles", &FileSource::Lua_FindFiles)
-		.def("LoadLuaFile", &FileSource::Lua_LoadLuaFile);
+		.def("LoadLuaFile", &FileSource::Lua_LoadLuaFile)
+    .def("MountFile", &FileSource::MountFile)
+    .def("MountFiles", &FileSource::MountFiles);
 }

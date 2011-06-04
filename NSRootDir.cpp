@@ -3,6 +3,8 @@
 #include "NS_IOModule.h"
 #include "StringUtil.h"
 #include <boost/algorithm/string.hpp>
+#include "ResourceOverrider.h"
+
 
 extern PlatformPath NSRootPath;
 
@@ -11,21 +13,17 @@ extern PlatformPath NSRootPath;
 namespace boostfs = boost::filesystem ;
 
 
- 
-DirectoryFileSource::DirectoryFileSource(char* dirName){
+DirectoryFileSource::DirectoryFileSource(char* dirName): ParentSource(NULL), GameFileSystemPath(dirName){
 
 	RealPath = NSRootPath/dirName;
-	GameFileSystemPath = dirName;
-
-	IsRootSource = true;
 
 	if(GameFileSystemPath.back() != '/'){
 		GameFileSystemPath.push_back('/');
 	}
 }
 
-DirectoryFileSource::DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath, bool isRootSource)
- :GameFileSystemPath(GamePath), RealPath(DirectoryPath), IsRootSource(isRootSource){
+DirectoryFileSource::DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath, DirectoryFileSource* parentSource)
+ :GameFileSystemPath(GamePath), RealPath(DirectoryPath), ParentSource(parentSource){
 
  if(!GameFileSystemPath.empty() && GameFileSystemPath.back() != '/'){
 	 GameFileSystemPath.push_back('/');
@@ -60,67 +58,31 @@ bool DirectoryFileSource::DirectoryExists( const PathStringArg& DirectoryPath ){
 }
 
 int DirectoryFileSource::FindFiles(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundFiles){
-	
-	auto fullpath = SearchPath.CreateSearchPath(RealPath, NamePatten);
+  int count = 0;
 
-	WIN32_FIND_DATAW FindData;
-	memset(&FindData, 0, sizeof(FindData));
-
-	HANDLE FHandle = FindFirstFileEx(fullpath.c_str(), FindExInfoBasic, &FindData, FindExSearchNameMatch, NULL, 0);
-
-	if(FHandle == INVALID_HANDLE_VALUE){
-		return 0;
-	}
-
-	int count = 0;
-
-	do{
-		if(wcscmp(FindData.cFileName, L".") && wcscmp(FindData.cFileName, L"..") && (FindData.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) == 0){
-			count++;
-			string FileName;
-			UTF16ToUTF8STLString(FindData.cFileName, FileName);
-
-			FoundFiles[FileName] = this;
-		}
-	}while(FindNextFile(FHandle, &FindData));
-
-	FindClose(FHandle);
+  ForEachFile(SearchPath.CreateSearchPath("", NamePatten), [=,&FoundFiles ,&count](const FileInfo& file)mutable ->void{
+    if(!file.IsDirectory()){
+      FoundFiles[UTF16ToUTF8STLString(file.cFileName)] = this;
+      count++;
+    }
+  });
 
 	return count;
 }
 
+int DirectoryFileSource::FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys){
 
-int DirectoryFileSource::FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys )
-{
+  int count = 0;
 
-	auto fullpath = SearchPath.CreateSearchPath(RealPath, NamePatten);
+  ForEachFile(SearchPath.CreateSearchPath("", NamePatten), [=, &FoundDirectorys,&count](const FileInfo& file)mutable ->void{
+    if(file.IsDirectory()){
+      FoundDirectorys[UTF16ToUTF8STLString(file.cFileName)] = this;
+      count++;
+    }
+  });
 
-	WIN32_FIND_DATAW FindData;
-	memset(&FindData, 0, sizeof(FindData));
-
-	HANDLE FHandle = FindFirstFileEx(fullpath.c_str(), FindExInfoBasic, &FindData, (FINDEX_SEARCH_OPS)(FindExSearchNameMatch|FindExSearchLimitToDirectories), NULL, 0);
-
-	if(FHandle == INVALID_HANDLE_VALUE){
-		return 0;
-	}
-
-	int count = 0;
-
-	do{
-		if(wcscmp(FindData.cFileName, L".") && wcscmp(FindData.cFileName, L"..") && (FindData.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) != 0){
-			string FileName;
-			UTF16ToUTF8STLString(FindData.cFileName, FileName);
-
-			FoundDirectorys[FileName] = this;
-			count++;
-		}
-	}while(FindNextFile(FHandle, &FindData));
-
-	FindClose(FHandle);
-
-	return count;
+  return count;
 }
-
 
 bool DirectoryFileSource::GetModifiedTime( const PathStringArg& Path, int32_t& Time ){
 
@@ -161,7 +123,6 @@ void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePa
 
   boost::replace(chunkpath, '/', '\\');
 
-
 	LuaModule::LoadLuaFile(L, path, ('@'+chunkpath).c_str() );
 
 	//loadfile should of pushed either a function or an error message on to the stack leave it there as the return value
@@ -198,4 +159,126 @@ int DirectoryFileSource::RelativeRequire(lua_State* L, const PathStringArg& Modu
 
 const string& DirectoryFileSource::get_Path(){
 	return GameFileSystemPath;
+}
+
+extern ResourceOverrider* OverrideSource;
+
+void DirectoryFileSource::MountFile( const PathStringArg& FilePath, const PathStringArg& DestinationPath ){
+
+  ConvertAndValidatePath(FilePath);
+
+  PlatformPath path = FilePath.CreatePath(RealPath);
+
+  if(!boostfs::exists(path)){
+    throw std::exception("Cannot mount a file that does not exist");
+  }
+
+  OverrideSource->MountFile(DestinationPath.GetNormalizedPath(), path, true);
+}
+
+class MountFileIT{
+public:
+  MountFileIT(PlatformPath& currentPath,  string& DestPath) : CurrentPath(currentPath), CurrentDestPath(DestPath),
+    CurrentPathS(const_cast<std::wstring&>(CurrentPath.native()) ){
+  }
+
+  __forceinline void operator()(const FileInfo& file){
+    if(file.IsDirectory()){
+      int namesize = CurrentDestPath.size();
+
+      CurrentDestPath.append(file.GetName());
+      CurrentDestPath.push_back('/');
+
+      CurrentPath /= file.cFileName;
+
+      namesize = CurrentDestPath.size()-namesize;
+
+      //lambda recursion fun times
+      //ForEachFile(CurrentPath, foreachFunc);
+
+      //CurrentPath.remove_filename()
+
+      //shrink the path back down one directory
+      CurrentPathS.resize(CurrentPathS.size()-namesize);
+      CurrentDestPath.resize(CurrentDestPath.size()-namesize);
+
+    }else{
+      CurrentPath/file.cFileName;
+    }
+  }
+
+private:
+  string CurrentDestPath;
+  PlatformPath CurrentPath;
+  std::wstring& CurrentPathS;
+
+};
+
+
+void DirectoryFileSource::MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath){
+  
+  PlatformPath::string_type NormBasePath = ConvertAndValidatePath(BasePath);
+
+  PlatformPath CurrentPath = BasePath.CreatePath(RealPath);
+  string CurrentDestPath = DestinationPath.GetNormalizedPath();
+
+  if(!CurrentDestPath.empty() && CurrentDestPath.back() != '/'){
+    CurrentDestPath.push_back('/');
+  }
+
+  std::wstring& CurrentPathS =  const_cast<std::wstring&>(CurrentPath.native());
+
+  int pathOffset  = RealPath.native().size();
+
+  std::function<void(const FileInfo&)> foreachFunc = [&](const FileInfo& file) mutable ->void {
+    if(file.IsDirectory()){
+      int namesize = CurrentDestPath.size();
+      
+      CurrentDestPath.append(file.GetName());
+      CurrentDestPath.push_back('/');
+
+      CurrentPath /= file.cFileName;
+      
+      namesize = CurrentDestPath.size()-namesize;
+
+      //lambda recursion fun times
+      ForEachFile(CurrentPath.c_str()+pathOffset, foreachFunc);
+
+      //shrink the path back down one directory
+      CurrentPathS.resize(CurrentPathS.size()-namesize);
+      CurrentDestPath.resize(CurrentDestPath.size()-namesize);
+
+    }else{
+      //CurrentDestPath
+      OverrideSource->MountFile(CurrentDestPath+file.GetNormlizedName(), CurrentPath/file.cFileName, false);
+    }
+  };
+
+  ForEachFile(BasePath.ToString(),  foreachFunc);
+}
+
+M4::File* DirectoryFileSource::GetEngineFile(const string& path){
+  PlatformPath fullpath = RealPath/path;
+
+  if(!boostfs::exists(fullpath))return NULL;
+
+  return new DirEngineFile(fullpath);
+}
+
+DirectoryFileSource* DirectoryFileSource::CreateChildSource( const string& SubDirectory ){
+  if(ParentSource != NULL)throw exception("Cannot create child source from non root DirectoryFileSource");
+
+  auto node = ChildSources.find(SubDirectory);
+
+  if(node != ChildSources.end()){
+    return node->second;
+  }
+
+  PlatformPath path = RealPath/SubDirectory;
+
+  if(!boostfs::exists(path)){
+    throw exception("DirectoryFileSource::CreateChildSource: cannot create child source because that subdirectory does not exist");
+  }
+
+  return new DirectoryFileSource(path, GameFileSystemPath+SubDirectory, this);
 }

@@ -18,7 +18,8 @@ class LuaModule{
     static luabind::object GetSupportedArchiveFormats(lua_State *L);
 		static boost::shared_ptr<FileSource> OpenArchive(lua_State* L, FileSource* ContainingSource, const PathStringArg& Path);
 		static boost::shared_ptr<FileSource> OpenArchive2(lua_State* L, const PathStringArg& Path);
-    static void MountArchiveFile(FileSource* Source, const PathStringArg& FileInArchive, const PathStringArg& DestinationPath);
+    static bool UnmountFile(const PathStringArg& path);
+
     static void MountMapArchive(Archive* archive);
     static void UnMountMapArchive();
 
@@ -61,7 +62,7 @@ class LuaModule{
 public:
     LuaModule(lua_State* L);
     ~LuaModule(){}
-    
+
     luabind::object MessageFunc;
     static DirectoryFileSource* ModDirectory;
 };

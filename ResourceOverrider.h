@@ -14,58 +14,85 @@ namespace boost{
 class OverrideEntry{
 
 public:
-  OverrideEntry():Data(nullptr), ContainingArchive(nullptr), FileIndex(-1){}
+  OverrideEntry():Data(), ContainingArchive(NULL), FileIndex(-1), OverrideGroupTag(0){}
 
-  OverrideEntry(Archive* owner, int index, bool PreloadFile){
+  OverrideEntry(Archive* owner, int index, bool PreloadFile, int groupTag = 0) : OverrideGroupTag(groupTag){
     FileIndex = index;
     ContainingArchive = owner;
 
-    
     if(PreloadFile){
-      Data = ContainingArchive->ExtractFileToMemory(FileIndex);
-    }else{
-      Data = nullptr;
+      Data.reset(ContainingArchive->ExtractFileToMemory(FileIndex), [](void* data){delete data;} );
     }
   }
 
-  OverrideEntry(PlatformPath OverriderPath, bool PreloadFile) :Data(nullptr), FileIndex(-1){
+  OverrideEntry(PlatformPath OverriderPath, bool PreloadFile) :Data(), FileIndex(-1), ContainingArchive(NULL), OverrideGroupTag(){
     OverriderFile = OverriderPath;
   }
 
-  OverrideEntry(const OverrideEntry& other) :Data(nullptr), ContainingArchive(other.ContainingArchive), FileIndex(other.FileIndex){ 
-    Data = NULL;
+  OverrideEntry(const OverrideEntry& other) :Data(other.Data), ContainingArchive(other.ContainingArchive), FileIndex(other.FileIndex), OverrideGroupTag(0){ 
+    if(ContainingArchive != NULL){
+      ContainingArchive->FileUnMounted(FileIndex);
+    }
   }
 
-  OverrideEntry(OverrideEntry&& other){ 
-    Data = nullptr;
-    *this = std::move(other);
-  }
+  //OverrideEntry(OverrideEntry&& other): Data(), ContainingArchive(NULL){ 
+  //  *this = std::move(other);
+  //}
 
-  OverrideEntry& operator=(OverrideEntry&&other){
-    ContainingArchive = other.ContainingArchive; 
-    FileIndex = other.FileIndex;
+  OverrideEntry& operator=(const OverrideEntry& other){
+    if(other.ContainingArchive != NULL){
+      ContainingArchive->FileMounted(other.FileIndex);
+    }
+
+    if(ContainingArchive != NULL){
+      ContainingArchive->FileUnMounted(FileIndex);
+    }
     
-    if(Data != nullptr)delete Data;
+    ContainingArchive = other.ContainingArchive;
+    FileIndex = other.FileIndex;
     Data = other.Data;
 
-    if(this != &other) {
-      other.Data = nullptr;
-    }
+    OverriderFile = other.OverriderFile;
 
     return *this;
   }
 
+  /*
+  OverrideEntry& operator=(OverrideEntry&& other){
+    if(this != &other) {
+      if(ContainingArchive != NULL){
+        ContainingArchive->FileUnMounted(FileIndex);
+      }
+
+      ContainingArchive = other.ContainingArchive; 
+      other.ContainingArchive = NULL;
+
+      FileIndex = other.FileIndex;
+      other.FileIndex = -1;
+
+      Data = other.Data;
+    }
+
+    return *this;
+  }
+  */
+
   ~OverrideEntry(){
-    delete Data;
   }
 
   //we can't just return ourselves because the engine calls the destructor on the file object
-  EngineFile* MakeEngineFileObj(){
-    return new OverrideFile(this);
-  }
+  M4::File* MakeEngineFileObj();
 
   bool IsInArchive() const{
     return FileIndex != -1;
+  }
+
+  bool FromArchive(Archive* source){
+    return IsInArchive() && source == ContainingArchive;
+  }
+
+  int GetGroupId(){
+    return OverrideGroupTag;
   }
 
   void* Lock(uint32_t start, uint32_t size);
@@ -74,17 +101,20 @@ public:
   uint32_t GetLength();
 
 private:
-  int FileIndex;
-  void* Data;
-  
   Archive* ContainingArchive;
+  int OverrideGroupTag;
+  int FileIndex;
+  //this pointer is only set to something if
+  shared_ptr<void> Data;
+  
   boost::iostreams::mapped_file* MappedFile;
   PlatformPath OverriderFile;
 
- class OverrideFile :public EngineFile{
+ class OverrideFile :public M4::File{
   public:
-    OverrideFile(OverrideEntry* owner){
+    OverrideFile(OverrideEntry* owner): Data(){
       Owner = owner;
+      Data.swap(Owner->Data);
     }
 
     ~OverrideFile(){
@@ -101,6 +131,7 @@ private:
 
     void UnLock(){
       Owner->UnLock();
+      Data.reset();
     }
 
     uint32_t GetLength(){
@@ -108,19 +139,26 @@ private:
     }
 
     OverrideEntry* Owner;
+    shared_ptr<void> Data;
   };
 };
 
 
-class ResourceOverrider : public EngineFileSource{
+class ResourceOverrider : public M4::FileSource{
 public:
   ResourceOverrider(): MapArchive(){
   }
 
-  void AddFileOverride(std::string path, Archive* container, int FileIndex){
+  void MountFile(const string& path, Archive* container, int FileIndex, bool TriggerModifed = false){
     container->FileMounted(FileIndex);
 
     FileOverrides[path] = OverrideEntry(container, FileIndex, true);
+
+    if(TriggerModifed)ChangedFiles.push_back(VC05string(path));
+  }
+
+  void MountFile(const string& path, PlatformPath OverriderPath, bool TriggerModifed = false){
+    FileOverrides[path] = OverrideEntry(OverriderPath, true);
   }
 
   //path has tobe normalized before being passed to this
@@ -128,8 +166,18 @@ public:
     return FileOverrides.find(path) != FileOverrides.end();
   }
 
-  void AddFileOverride(std::string path, PlatformPath OverriderPath){
-    FileOverrides[path] = OverrideEntry(OverriderPath, true);
+  bool RemoveFileOverride(const string& path, bool TriggerModifed = true){
+
+    auto result = FileOverrides.find(path);
+    
+    if(result != FileOverrides.end()){
+        FileOverrides.erase(result);
+
+        if(TriggerModifed)ChangedFiles.push_back(VC05string(path));
+      return true;
+    }
+
+    return false;
   }
 
   virtual ~ResourceOverrider(){
@@ -142,7 +190,7 @@ public:
     MapArchive = NULL;
   }
 
-  EngineFile* OpenFile(const VC05string& path, bool something);
+  M4::File* OpenFile(const VC05string& path, bool something);
 
   bool GetFileExists(const VC05string& path);
 
@@ -150,11 +198,23 @@ public:
     return VC05string();
   }
 
-private:
-  EngineFileSource* ModSource;
-  EngineFileSource* MainNS2Source;
+  int UnmountGroup(int GroupId);
+  void UnmountFilesFromArchive(Archive* source);
+ 
+  void MountFilesList(Archive* source, const vector<pair<string, int>>& FileList, bool triggerChange){
+    typedef pair<const string, int> EntryType;
 
+    BOOST_FOREACH(const EntryType& file, FileList){
+      MountFile(file.first, source, file.second, triggerChange);
+    }
+  }
+
+  void GetChangedFiles(std::vector<VC05string>& ChangeFiles);
+
+private:
   Archive* MapArchive;
+
+  vector<VC05string> ChangedFiles;
 
   std::map<std::string, boost::shared_ptr<FileSource*>> ModFolders;
 
@@ -162,14 +222,16 @@ private:
 };
 
 
-typedef VC05Vector<std::pair<int, EngineFileSource*>> FileListType;
+typedef VC05Vector<std::pair<int, M4::FileSource*>> FileListType;
 
-class M4FileSystem{
-
-public:
-  virtual ~M4FileSystem(){}
-
-  void AddSource(EngineFileSource* Source, int flags){}
-
-  FileListType FileList;
-};
+namespace M4{
+  class FileSystem{
+   public:
+    virtual ~FileSystem(){}
+  
+    void AddSource(M4::FileSource* Source, unsigned int flags);
+    void RemoveSource(M4::FileSource *Source);
+  
+    FileListType FileList;
+  };
+}
