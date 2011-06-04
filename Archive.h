@@ -88,16 +88,12 @@ public:
   }
 
   void FileMounted(int FileIndex){
-    if(FileIndex != -1){
      MountedFileCount++;
-    }
   }
-  
+
   void FileUnMounted(int FileIndex){
-    if(FileIndex != -1){
-      if(--MountedFileCount == 0){
-        CheckDelete();
-      }
+    if(--MountedFileCount == 0){
+      CheckDelete();
     }
   }
 

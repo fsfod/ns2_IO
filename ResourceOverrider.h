@@ -146,7 +146,7 @@ private:
 
 class ResourceOverrider : public M4::FileSource{
 public:
-  ResourceOverrider(): MapArchive(){
+  ResourceOverrider(): MapArchive(NULL), FileOverrides(), ChangedFiles(){
   }
 
   void MountFile(const string& path, Archive* container, int FileIndex, bool TriggerModifed = false){
@@ -187,6 +187,9 @@ public:
   void MountMapArchive(Archive* archive);
 
   void UnmountMapArchive(){
+    if(MapArchive != NULL){
+      MapArchive->FileUnMounted(-1);
+    }
     MapArchive = NULL;
   }
 
@@ -215,9 +218,6 @@ private:
   Archive* MapArchive;
 
   vector<VC05string> ChangedFiles;
-
-  std::map<std::string, boost::shared_ptr<FileSource*>> ModFolders;
-
   std::map<std::string, OverrideEntry> FileOverrides;
 };
 
