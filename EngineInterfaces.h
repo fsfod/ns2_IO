@@ -35,7 +35,8 @@ namespace M4{
   
     virtual M4::File* OpenFile(const VC05string& path, bool something) = 0;
     virtual bool GetFileExists(const VC05string& path) = 0;
-  
+    virtual int64_t GetFileModificationTime(const VC05string& path) = 0;
+
     //these 2 are optional
     virtual void GetChangedFiles(std::vector<VC05string>& ChangeFiles){
       return;

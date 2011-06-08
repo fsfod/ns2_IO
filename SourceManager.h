@@ -97,6 +97,8 @@ public:
 
   }
 
+  virtual int64_t GetFileModificationTime( const VC05string& path );
+
 private:
   vector<::FileSource*> ExtraSources;
 };

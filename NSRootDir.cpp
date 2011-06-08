@@ -107,7 +107,6 @@ bool DirectoryFileSource::GetModifiedTime( const PathStringArg& Path, int32_t& T
 	return true;
 }
 
-
 const string luaExt(".lua");
 
 void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePath ){
@@ -281,4 +280,8 @@ DirectoryFileSource* DirectoryFileSource::CreateChildSource( const string& SubDi
   }
 
   return new DirectoryFileSource(path, GameFileSystemPath+SubDirectory, this);
+}
+
+std::int64_t DirectoryFileSource::GetFileModificationTime(const string& path){
+ return boostfs::last_write_time(RealPath/path);
 }

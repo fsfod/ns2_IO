@@ -246,12 +246,7 @@ uint32_t Archive::GetFileSize(int FileIndex){
 	return (uint32_t)Filesize;
 }
 
-bool Archive::GetModifiedTime(const PathStringArg& Path, int32_t& Time){
-  
-  int FileIndex = GetFileIndex(Path.GetNormalizedPath());
-
-  if(FileIndex == -1)return false;
-
+int64_t Archive::GetModifiedTime(int FileIndex){
   NWindows::NCOM::CPropVariant prop;
 
   if(Reader->GetProperty(FileIndex, kpidMTime, &prop) != S_OK){
@@ -259,12 +254,21 @@ bool Archive::GetModifiedTime(const PathStringArg& Path, int32_t& Time){
   }
 
   if(prop.vt == VT_FILETIME){
-    uint64_t ftime = prop.filetime.dwLowDateTime | ((UInt64)prop.filetime.dwHighDateTime << 32);
-
-    Time = (int32_t)((ftime-116444736000000000)/10000000);
+    return prop.filetime.dwLowDateTime | ((UInt64)prop.filetime.dwHighDateTime << 32);
   }else{
     throw std::exception("Modified time of archive format was return in an unexpected format");
   }
+}
+
+bool Archive::GetModifiedTime(const PathStringArg& Path, int32_t& Time){
+  
+  int FileIndex = GetFileIndex(Path.GetNormalizedPath());
+
+  if(FileIndex == -1)return false;
+
+  int64_t ftime = GetModifiedTime(FileIndex);
+
+  Time = (int32_t)((ftime-116444736000000000)/10000000);
 
 	return true;
 }
@@ -372,4 +376,12 @@ M4::File* Archive::GetEngineFile( const string& path ){
   if(FileIndex == -1)return NULL;
 
   return new ArchiveFile(this, FileIndex);
+}
+
+std::int64_t Archive::GetFileModificationTime( const string& path ){
+  int index = GetFileIndex(path);
+
+  if(index == -1)return 0;
+
+  return GetModifiedTime(index);
 }

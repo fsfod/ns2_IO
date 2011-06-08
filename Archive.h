@@ -36,6 +36,9 @@ public:
 	int FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys);
 	bool FileSize(const PathStringArg& path, double& Filesize);
 	bool GetModifiedTime(const PathStringArg& Path, int32_t& Time);
+  int64_t GetModifiedTime(int FileIndex);
+  
+  virtual int64_t GetFileModificationTime(const string& path);
 
   virtual void MountFile(const PathStringArg& FilePath, const PathStringArg& DestinationPath);
   virtual void MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath);

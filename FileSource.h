@@ -26,6 +26,7 @@ public:
   //both these must be passed normalized paths
   virtual M4::File* GetEngineFile(const string& path) = 0;
   virtual bool FileExist(const string& path) = 0;
+  virtual int64_t GetFileModificationTime(const string& path) = 0;
 
 	virtual const std::string& get_Path() = 0;
 

@@ -73,6 +73,23 @@ void ResourceOverrider::UnmountFilesFromArchive(Archive* source){
   }
 }
 
+int64_t ResourceOverrider::GetFileModificationTime(const VC05string& path){
+  string NormPath = NormalizedPath(path.c_str(), path.size());
+
+  if(MapArchive != NULL){ 
+    int fileIndex = MapArchive->GetFileIndex(NormPath);
+
+    if(fileIndex != -1){
+      return MapArchive->GetModifiedTime(fileIndex);
+    }
+  }
+
+  auto result = FileOverrides.find(NormPath);
+
+  if(result == FileOverrides.end())return 0;
+
+  return result->second.GetFileModifiedTime();
+}
 
 void ResourceOverrider::GetChangedFiles(std::vector<VC05string>& ChangedFileList){
 

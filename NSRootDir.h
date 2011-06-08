@@ -26,6 +26,10 @@ public:
 	int FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys);
 	bool FileSize(const PathStringArg& path, double& Filesize);
 	bool GetModifiedTime(const PathStringArg& Path, int32_t& Time);
+  
+  int64_t GetModifiedTime(const PlatformPath& path);
+  
+  virtual int64_t GetFileModificationTime(const string& path);
 
   bool FileExists(const std::string& FilePath);
   bool GetFileStat(const std::string& Path, FileInfo& stat);

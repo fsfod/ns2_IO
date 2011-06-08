@@ -113,3 +113,15 @@ bool EndSource::GetFileExists( const VC05string& path ){
 
   return false;
 }
+
+std::int64_t EndSource::GetFileModificationTime( const VC05string& path ){
+  string normpath = NormalizedPath(path.c_str(), path.size());
+
+  BOOST_FOREACH(::FileSource* source, ExtraSources){
+    if(source->FileExist(normpath)){
+      return source->GetFileModificationTime(normpath);
+    }
+  }
+
+  return 0;
+}

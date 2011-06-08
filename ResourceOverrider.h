@@ -41,9 +41,9 @@ public:
 
   OverrideEntry& operator=(const OverrideEntry& other){
     if(other.ContainingArchive != NULL){
-      ContainingArchive->FileMounted(other.FileIndex);
+      other.ContainingArchive->FileMounted(other.FileIndex);
     }
-
+    
     if(ContainingArchive != NULL){
       ContainingArchive->FileUnMounted(FileIndex);
     }
@@ -100,6 +100,14 @@ public:
   void UnLock();
   uint32_t GetLength();
 
+  int64_t GetFileModifiedTime(){
+    if(IsInArchive()){
+      return ContainingArchive->GetModifiedTime(FileIndex);
+    }else{
+    	return boostfs::last_write_time(OverriderFile);
+    }
+  }
+
 private:
   Archive* ContainingArchive;
   int OverrideGroupTag;
@@ -109,38 +117,6 @@ private:
   
   boost::iostreams::mapped_file* MappedFile;
   PlatformPath OverriderFile;
-
- class OverrideFile :public M4::File{
-  public:
-    OverrideFile(OverrideEntry* owner): Data(){
-      Owner = owner;
-      Data.swap(Owner->Data);
-    }
-
-    ~OverrideFile(){
-      UnLock();
-    }
-
-    virtual void* LockRange(uint32_t start, uint32_t size){
-      return Owner->Lock(start, size);
-    }
-
-    virtual void* Lock(){
-      return Owner->Lock();
-    }
-
-    void UnLock(){
-      Owner->UnLock();
-      Data.reset();
-    }
-
-    uint32_t GetLength(){
-      return Owner->GetLength();
-    }
-
-    OverrideEntry* Owner;
-    shared_ptr<void> Data;
-  };
 };
 
 
@@ -211,6 +187,8 @@ public:
       MountFile(file.first, source, file.second, triggerChange);
     }
   }
+
+  int64_t GetFileModificationTime(const VC05string& path);
 
   void GetChangedFiles(std::vector<VC05string>& ChangeFiles);
 
