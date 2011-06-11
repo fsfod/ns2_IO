@@ -40,6 +40,8 @@ class LuaModule{
 
 		static std::string CommandLine, GameString;
 		static PlatformPath GameStringPath;
+    
+    static void OpenModsFolder();
 
 	private:
 		static void FindNSRoot();
@@ -62,7 +64,7 @@ class LuaModule{
 public:
     LuaModule(lua_State* L);
     ~LuaModule(){}
-
+    
     luabind::object MessageFunc;
     static DirectoryFileSource* ModDirectory;
 };

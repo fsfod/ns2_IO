@@ -650,6 +650,9 @@ void LuaModule::ExtractResource(FileSource* Source, const PathStringArg& FileInA
  // ExtractedFileCache.ExtractResourceToPath(ArchiveSource, FileInArchive.GetNormalizedPath(), DestinationPath);
 }
 
+void LuaModule::OpenModsFolder(){
+  ShellExecute(NULL, L"open", (*ModDirectory/"Mods").c_str(), NULL, NULL, SW_SHOWNORMAL);
+}
 
 
 

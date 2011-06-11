@@ -99,9 +99,11 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		def("OpenArchive", &LuaModule::OpenArchive2),
 		def("IsRootFileSource", &LuaModule::IsRootFileSource),
     def("LoadLuaDllModule", &LuaModule::LoadLuaDllModule),
+
     def("MountMapArchive", &LuaModule::MountMapArchive),
     def("UnMountMapArchive", &LuaModule::UnMountMapArchive),
     def("MountSource", &SourceManager::MountSource),
+    def("OpenModsFolder", &LuaModule::OpenModsFolder),
     //def("ExtractResourceToPath", &LuaModule::ExtractResource),
 		
 		FileSource::RegisterClass(),
