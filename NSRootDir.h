@@ -1,3 +1,5 @@
+#pragma once
+
 #include "stdafx.h"
 #include "LuaErrorWrapper.h"
 #include "StringUtil.h"
@@ -5,20 +7,22 @@
 #include "FileInfo.h"
 #include <boost/iostreams/device/mapped_file.hpp>
 
-#pragma once
+
 #include <system_error>
+
 
 class DirectoryFileSource;
 class DirEngineFile;
+class DirectoryChangeWatcher;
 
 class DirectoryFileSource : public FileSource{
 
 public:
-	DirectoryFileSource(){}
+	DirectoryFileSource(): ChangeWatcher(NULL), GameFileSystemPath(), RealPath(), ParentSource(){}
 	DirectoryFileSource(char* path);
 
 	DirectoryFileSource(const PlatformPath& DirectoryPath, const string& GamePath, DirectoryFileSource* ParentSource = NULL);
-	virtual ~DirectoryFileSource(){}
+	virtual ~DirectoryFileSource();
 
 	bool FileExists(const PathStringArg& path);
   bool DirectoryExists(const PathStringArg& path);
@@ -26,13 +30,17 @@ public:
 	int FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys);
 	bool FileSize(const PathStringArg& path, double& Filesize);
 	bool GetModifiedTime(const PathStringArg& Path, int32_t& Time);
+  virtual void MountFile(const PathStringArg& FilePath, const PathStringArg& DestinationPath);
+  virtual void MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath);
   
-  int64_t GetModifiedTime(const PlatformPath& path);
-  
-  virtual int64_t GetFileModificationTime(const string& path);
-
   bool FileExists(const std::string& FilePath);
   bool GetFileStat(const std::string& Path, FileInfo& stat);
+  int64_t GetModifiedTime(const PlatformPath& path);
+  
+  virtual bool FileExist(const string& path);
+  virtual int64_t GetFileModificationTime(const string& path);
+  virtual void GetChangedFiles(VC05Vector<VC05string>& changes);
+  virtual M4::File* GetEngineFile(const string& path);
 
   PlatformPath MakePlatformPath(std::string path) const{
     return RealPath/path;
@@ -67,15 +75,6 @@ public:
 	const PlatformPath& GetFileSystemPath(){
 		return RealPath;
 	}
-
-  virtual bool FileExist(const string& path){
-    return boostfs::exists(RealPath/path);
-  }
-
-  virtual M4::File* GetEngineFile(const string& path);
-
-  virtual void MountFile(const PathStringArg& FilePath, const PathStringArg& DestinationPath);
-  virtual void MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath);
   
   DirectoryFileSource* CreateChildSource(const string& SubDirectory);
   
@@ -93,8 +92,12 @@ private:
   PathString GameFileSystemPath;
 	PlatformPath RealPath;
 
+  DirectoryChangeWatcher* ChangeWatcher; 
+
 	DirectoryFileSource* ParentSource;
   std::map<string, DirectoryFileSource*> ChildSources;
+  
+  std::map<string, string> MountedFiles;
 };
 
 class DirEngineFile :public M4::File{
@@ -153,7 +156,6 @@ template<typename T> void DirectoryFileSource::ForEachFile(PlatformPath SubDirec
   FileInfo FindData;
   memset(&FindData, 0, sizeof(FileInfo));
 
-
   PlatformPath& path = (SubDirectory.empty() ? RealPath : (RealPath/SubDirectory));
 
   if(path.native().back() != '*'){
@@ -163,6 +165,7 @@ template<typename T> void DirectoryFileSource::ForEachFile(PlatformPath SubDirec
   HANDLE  FHandle = FindFirstFile(path.c_str(),  &FindData);
 
   if(FHandle == INVALID_HANDLE_VALUE){
+      int error = GetLastError();
     return;
   }
 

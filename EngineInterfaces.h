@@ -2,6 +2,7 @@
 
 #include "VC2005Compat.h"
 
+//#define LogMessage(msg) M4::Singleton<Log>::Get() << msg
 
 
 namespace M4{
@@ -38,7 +39,7 @@ namespace M4{
     virtual int64_t GetFileModificationTime(const VC05string& path) = 0;
 
     //these 2 are optional
-    virtual void GetChangedFiles(std::vector<VC05string>& ChangeFiles){
+    virtual void GetChangedFiles(VC05Vector<VC05string>& ChangeFiles){
       return;
     }
   
@@ -48,5 +49,23 @@ namespace M4{
   
     virtual VC05string GetDescription()= 0;
   };
-}
 
+  typedef VC05Vector<std::pair<int, FileSource*>> FileListType;
+
+  class FileSystem{
+   public:
+    virtual ~FileSystem(){}
+
+    void AddSource(M4::FileSource* Source, unsigned int flags);
+    void RemoveSource(M4::FileSource *Source);
+
+    FileListType FileList;
+  };
+};
+
+
+
+
+static inline void LogMessage(const char* msg){
+  M4::Singleton<M4::Log>::Get() << msg;
+}

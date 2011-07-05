@@ -1,4 +1,5 @@
 #include "StdAfx.h"
+/*
 #include "ExtractCache.h"
 #include <boost/system/system_error.hpp>
 #include <boost/archive/xml_oarchive.hpp>
@@ -143,3 +144,4 @@ void ExtractCache::ExtractResourceToPath(Archive* arch, std::string ArchiveFileP
   }
 
 }
+*/

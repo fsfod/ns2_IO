@@ -118,9 +118,9 @@ bool C7ZipLibrary::LoadFormats(){
 		wstring* supportedFormat = NULL;
 		
 
-		BOOST_FOREACH(wstring& ext, Exts){
-			if(ValidExtensions.find(ext) != ValidExtensions.end()){
-				supportedFormat = &ext;
+		BOOST_FOREACH(wstring& extstr, Exts){
+			if(ValidExtensions.find(extstr) != ValidExtensions.end()){
+				supportedFormat = &extstr;
 				break;
 			}
 		}

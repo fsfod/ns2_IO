@@ -27,6 +27,8 @@ public:
   virtual M4::File* GetEngineFile(const string& path) = 0;
   virtual bool FileExist(const string& path) = 0;
   virtual int64_t GetFileModificationTime(const string& path) = 0;
+  virtual void GetChangedFiles( VC05Vector<VC05string>& ChangedFiles ){
+  }
 
 	virtual const std::string& get_Path() = 0;
 
@@ -39,4 +41,5 @@ private:
 	luabind::object Lua_FindDirectorys(lua_State *L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
 	luabind::object Lua_FindFiles(lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
 	void Lua_LoadLuaFile(lua_State *L, const PathStringArg& path);
+  
 };

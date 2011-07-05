@@ -3,6 +3,8 @@
 #include "stdafx.h"
 #include "Archive.h"
 #include "FileInfo.h"
+
+/*
 #include <boost/serialization/map.hpp>
 
 using namespace boost::serialization;
@@ -86,3 +88,4 @@ private:
   std::map<std::string, CacheEntry> FileList;
 };
 
+*/

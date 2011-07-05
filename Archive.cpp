@@ -11,7 +11,8 @@
 #include "7zHelpers.h"
 
 #include <boost/algorithm/string.hpp>
-#include "ResourceOverrider.h"
+//#include "ResourceOverrider.h"
+#include "SourceManager.h"
 
 //using namespace std;
 using namespace boost::iostreams;
@@ -158,7 +159,7 @@ int Archive::FindFiles(const PathStringArg& SearchPath, const PathStringArg& Nam
 	string patten = NamePatten.ToString();
 
   BOOST_FOREACH(const FileNode& file, dir->Files){
-		if(patten.empty() || PathMatchSpecExA(file.first.c_str(), patten.c_str(), PMSF_NORMAL)){
+		if(patten.empty() || PathMatchSpecExA(file.first.c_str(), patten.c_str(), PMSF_NORMAL) == S_OK){
 			FoundFiles[file.first] = static_cast<FileSource*>(this);
 			count++;
 		}
@@ -188,7 +189,7 @@ int Archive::FindDirectorys(const PathStringArg& SearchPath, const PathStringArg
   string patten = NamePatten.ToString();
   
   BOOST_FOREACH(const DirNode& entry, dir->Directorys){
-  	if(patten.empty() || PathMatchSpecExA(entry.first.c_str(), patten.c_str(), PMSF_NORMAL)){
+  	if(patten.empty() || PathMatchSpecExA(entry.first.c_str(), patten.c_str(), PMSF_NORMAL) == S_OK){
   		FoundDirectorys[entry.first] = static_cast<FileSource*>(this);
   		count++;
   	}
@@ -342,7 +343,9 @@ void Archive::MountFile(const PathStringArg& FilePath, const PathStringArg& Dest
 
   if(index == -1)throw exception("Could not find the file specified in the archive");
 
-  OverrideSource->MountFile(DestinationPath.GetNormalizedPath(), this, index);
+ //boost::shared_ptr<void>(ExtractFileToMemory(index), [](void* data){delete data;}
+
+  SourceManager::MountFile(DestinationPath.GetNormalizedPath(), MountedFile(this, index));
 }
 
 void Archive::MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath){
@@ -351,7 +354,7 @@ void Archive::MountFiles(const PathStringArg& BasePath, const PathStringArg& Des
 
   CreateMountList(BasePath.GetNormalizedPath(), DestinationPath.GetNormalizedPath(), fileList);
 
-  OverrideSource->MountFilesList(this, fileList, true);
+  SourceManager::MountFilesList(this, fileList, true);
 }
 
 void Archive::CreateMountList(const std::string& BasePath, const std::string& path, vector<pair<string, int>>& fileList){
@@ -384,4 +387,11 @@ std::int64_t Archive::GetFileModificationTime( const string& path ){
   if(index == -1)return 0;
 
   return GetModifiedTime(index);
+}
+
+void Archive::CheckDelete(){
+  if(MountedFileCount == 0 && LuaPointer.use_count() == 0){
+    SourceManager::ArchiveClosed(this);
+   delete this;
+  }
 }

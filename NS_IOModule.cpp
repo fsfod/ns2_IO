@@ -627,7 +627,7 @@ void LuaModule::UnMountMapArchive(){
 }
 
 bool LuaModule::UnmountFile(const PathStringArg& path){
-  return OverrideSource->RemoveFileOverride(path.GetNormalizedPath());
+  return SourceManager::UnmountFile(path.GetNormalizedPath());
 }
 
 void LuaModule::ExtractResource(FileSource* Source, const PathStringArg& FileInArchive, const PathStringArg& DestinationPath){
@@ -645,7 +645,7 @@ void LuaModule::ExtractResource(FileSource* Source, const PathStringArg& FileInA
 
   if(index == -1)throw exception();
 
-  OverrideSource->MountFile(DestinationPath.GetNormalizedPath(), ArchiveSource, index);
+ // SourceManager::MountFile(DestinationPath.GetNormalizedPath(), ArchiveSource, index);
 
  // ExtractedFileCache.ExtractResourceToPath(ArchiveSource, FileInArchive.GetNormalizedPath(), DestinationPath);
 }
@@ -653,7 +653,6 @@ void LuaModule::ExtractResource(FileSource* Source, const PathStringArg& FileInA
 void LuaModule::OpenModsFolder(){
   ShellExecute(NULL, L"open", (*ModDirectory/"Mods").c_str(), NULL, NULL, SW_SHOWNORMAL);
 }
-
 
 
 

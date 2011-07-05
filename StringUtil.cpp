@@ -32,22 +32,22 @@ void UTF16ToUTF8STLString(const wchar_t* wString, int WStringLength, string& Str
 
 	StringResult.resize(WStringLength);
 
-	int result = WideCharToMultiByte(CP_UTF8, 0, wString, WStringLength, (char*)StringResult.c_str(), StringResult.capacity(), NULL, false);
+	int result = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wString, WStringLength, (char*)StringResult.c_str(), StringResult.capacity(), NULL, false);
 
 	if(result == 0){
 	 int lasterror = GetLastError();
 		
-		if(lasterror== ERROR_INSUFFICIENT_BUFFER){
-			result = WideCharToMultiByte(CP_UTF8, 0, wString, WStringLength, (char*)StringResult.c_str(), 0, NULL, false);
+		if(lasterror == ERROR_INSUFFICIENT_BUFFER){
+			result = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wString, WStringLength, (char*)StringResult.c_str(), 0, NULL, false);
 			StringResult.resize(result+1, 0);
 
-			result = WideCharToMultiByte(CP_UTF8, 0, wString, WStringLength, (char*)StringResult.c_str(), StringResult.capacity(), NULL, false);
+			result = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wString, WStringLength, (char*)StringResult.c_str(), StringResult.capacity(), NULL, false);
 
 			if(result == 0){
-				throw exception("error while converting UTF8 to UTF16");
+				throw exception("error while converting string from UTF16 to UTF8");
 			}
 		}else{
-			throw exception("error while converting UTF16 to UTF8");
+			throw exception("error while converting string from UTF16 to UTF8");
 		}
 	}
 }
@@ -64,16 +64,16 @@ void UTF8ToWString(const char* String, int StringLength, wstring& StringResult){
 
 	StringResult.resize(StringLength);
 
-	int size = MultiByteToWideChar(CP_UTF8,0, String, StringLength, (wchar_t*)StringResult.c_str(), StringLength+1);
+	int size = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, String, StringLength, (wchar_t*)StringResult.c_str(), StringLength+1);
 
 	if(size == 0){
 		int lasterror = GetLastError();
 
 		if(lasterror== ERROR_INSUFFICIENT_BUFFER){
-			size = MultiByteToWideChar(CP_UTF8,0, String, StringLength, (wchar_t*)StringResult.c_str(), 0);
+			size = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, String, StringLength, (wchar_t*)StringResult.c_str(), 0);
 			StringResult.resize(size+1, 0);
 
-			size = MultiByteToWideChar(CP_UTF8,0, String, StringLength, (wchar_t*)StringResult.c_str(), size);
+			size = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, String, StringLength, (wchar_t*)StringResult.c_str(), size);
 
 			if(size == 0){
 				throw exception("error while converting UTF8 to UTF16");

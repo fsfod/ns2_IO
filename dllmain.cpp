@@ -43,7 +43,7 @@ void* WINAPI DelayLoadHook(unsigned dliNotify, PDelayLoadInfo  pdli){
        delete path;
      }else{
        if(result == 0){
-         delete path;
+         delete[] path;
          return NULL;
        }else{
        	break;
@@ -59,7 +59,7 @@ void* WINAPI DelayLoadHook(unsigned dliNotify, PDelayLoadInfo  pdli){
 
   HMODULE hmod = LoadLibraryW(path);
 
-  if(path != PathBuf)delete path;
+  if(path != PathBuf)delete[] path;
 
  return (void*)hmod;
 }

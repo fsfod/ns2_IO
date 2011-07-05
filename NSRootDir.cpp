@@ -2,8 +2,8 @@
 #include "NSRootDir.h"
 #include "NS_IOModule.h"
 #include "StringUtil.h"
-#include <boost/algorithm/string.hpp>
-#include "ResourceOverrider.h"
+#include "SourceManager.h"
+#include "DirectoryChangeWatcher.h"
 
 
 extern PlatformPath NSRootPath;
@@ -13,7 +13,7 @@ extern PlatformPath NSRootPath;
 namespace boostfs = boost::filesystem ;
 
 
-DirectoryFileSource::DirectoryFileSource(char* dirName): ParentSource(NULL), GameFileSystemPath(dirName){
+DirectoryFileSource::DirectoryFileSource(char* dirName): ParentSource(NULL), GameFileSystemPath(dirName), ChangeWatcher(NULL){
 
 	RealPath = NSRootPath/dirName;
 
@@ -23,11 +23,17 @@ DirectoryFileSource::DirectoryFileSource(char* dirName): ParentSource(NULL), Gam
 }
 
 DirectoryFileSource::DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath, DirectoryFileSource* parentSource)
- :GameFileSystemPath(GamePath), RealPath(DirectoryPath), ParentSource(parentSource){
+ :GameFileSystemPath(GamePath), RealPath(DirectoryPath), ParentSource(parentSource), ChangeWatcher(NULL){
 
  if(!GameFileSystemPath.empty() && GameFileSystemPath.back() != '/'){
 	 GameFileSystemPath.push_back('/');
  }
+}
+
+DirectoryFileSource::~DirectoryFileSource(){
+  if(ChangeWatcher != NULL){
+    delete ChangeWatcher;
+  }
 }
 
 bool DirectoryFileSource::FileExists(const PathStringArg& FilePath){
@@ -172,7 +178,9 @@ void DirectoryFileSource::MountFile( const PathStringArg& FilePath, const PathSt
     throw std::exception("Cannot mount a file that does not exist");
   }
 
-  OverrideSource->MountFile(DestinationPath.GetNormalizedPath(), path, true);
+  MountedFiles.insert(std::make_pair(FilePath.GetNormalizedPath(), DestinationPath.GetNormalizedPath()));
+
+  SourceManager::MountFile(DestinationPath.GetNormalizedPath(), MountedFile(this, path, true));
 }
 
 class MountFileIT{
@@ -249,7 +257,7 @@ void DirectoryFileSource::MountFiles(const PathStringArg& BasePath, const PathSt
 
     }else{
       //CurrentDestPath
-      OverrideSource->MountFile(CurrentDestPath+file.GetNormlizedName(), CurrentPath/file.cFileName, false);
+      SourceManager::MountFile(CurrentDestPath+file.GetNormlizedName(), MountedFile(this, CurrentPath/file.cFileName, false));
     }
   };
 
@@ -284,4 +292,30 @@ DirectoryFileSource* DirectoryFileSource::CreateChildSource( const string& SubDi
 
 std::int64_t DirectoryFileSource::GetFileModificationTime(const string& path){
  return boostfs::last_write_time(RealPath/path);
+}
+
+void DirectoryFileSource::GetChangedFiles( VC05Vector<VC05string>& changes ){
+  //just let the parent collect changes
+  if(ParentSource != NULL)return;
+
+  if(ChangeWatcher == NULL){
+    ChangeWatcher = new DirectoryChangeWatcher(RealPath);
+  }else{
+    ChangeWatcher->CheckForChanges(changes);
+
+
+    typedef pair<const std::string, MountedFile>* ListEntry;
+
+    vector<ListEntry> files;
+
+    BOOST_FOREACH(ListEntry file,  files){
+      if(false){
+      }
+    }
+    //GetFilesFromSource();
+  }
+}
+
+bool DirectoryFileSource::FileExist(const string& path){
+  return boostfs::exists(RealPath/path);
 }

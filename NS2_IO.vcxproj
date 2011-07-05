@@ -110,16 +110,19 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClInclude Include="7zip\CPP\Windows\PropVariant.h" />
     <ClInclude Include="Archive.h" />
     <ClInclude Include="C7ZipLibrary.h" />
+    <ClInclude Include="DirectoryChangeWatcher.h" />
     <ClInclude Include="EngineInterfaces.h" />
     <ClInclude Include="ExtractCache.h" />
     <ClInclude Include="FileInfo.h" />
     <ClInclude Include="LuaErrorWrapper.h" />
     <ClInclude Include="FileSource.h" />
     <ClInclude Include="NSRootDir.h" />
+    <ClInclude Include="MountedFile.h" />
     <ClInclude Include="PathStringArg.h" />
     <ClInclude Include="PathStringConverter.h" />
     <ClInclude Include="ResourceOverrider.h" />
     <ClInclude Include="SavedVariables.h" />
+    <ClInclude Include="SourceCollection.h" />
     <ClInclude Include="SourceDirectory.h" />
     <ClInclude Include="SourceManager.h" />
     <ClInclude Include="stdafx.h" />
@@ -134,14 +137,17 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClCompile Include="7zip\CPP\Windows\PropVariant.cpp" />
     <ClCompile Include="Archive.cpp" />
     <ClCompile Include="C7ZipLibrary.cpp" />
+    <ClCompile Include="DirectoryChangeWatcher.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="ExtractCache.cpp" />
     <ClCompile Include="LuaErrorWrapper.cpp" />
     <ClCompile Include="FileSource.cpp" />
     <ClCompile Include="NSRootDir.cpp" />
+    <ClCompile Include="MountedFile.cpp" />
     <ClCompile Include="PathStringArg.cpp" />
     <ClCompile Include="ResourceOverrider.cpp" />
     <ClCompile Include="SavedVariables.cpp" />
+    <ClCompile Include="SourceCollection.cpp" />
     <ClCompile Include="SourceManager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

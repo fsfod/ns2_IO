@@ -2,7 +2,6 @@
 
 #include "stdafx.h"
 #include "StringUtil.h"
-#include "SourceManager.h"
 #include "FileSource.h"
 #include "SourceDirectory.h"
 
@@ -83,12 +82,7 @@ public:
   uint32_t GetFileCRC(int FileIndex);
   uint32_t GetFileSize(int index);
 
-  void CheckDelete(){
-    if(MountedFileCount == 0 && LuaPointer.use_count() == 0){
-      SourceManager::ArchiveClosed(this);
-      delete this;
-    }
-  }
+  void CheckDelete();
 
   void FileMounted(int FileIndex){
      MountedFileCount++;

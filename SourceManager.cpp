@@ -11,7 +11,7 @@ extern C7ZipLibrary* SevenZip;
 
 std::map<PlatformPath::string_type, Archive*> SourceManager::OpenArchives;
 ResourceOverrider* SourceManager::Overrider = NULL;
-EndSource* SourceManager::ExtraSources = NULL;
+SourceCollection* SourceManager::ExtraSources = NULL;
 
 extern ResourceOverrider* OverrideSource;
 
@@ -40,7 +40,7 @@ void SourceManager::SetupFilesystemMounting(){
   //make sure theres space for ResourceOverrider by adding a dummy
   FileSystem.AddSource(nullptr, 1);
 
-  FileListType& FileSystemList = FileSystem.FileList;
+   M4::FileListType& FileSystemList = FileSystem.FileList;
 
   int listsize = FileSystemList.size();
 
@@ -48,7 +48,7 @@ void SourceManager::SetupFilesystemMounting(){
   FileSystemList.pop_back();
   FileSystemList.push_front(std::pair<int, M4::FileSource*>(1, Overrider));
 
-  ExtraSources = new EndSource();
+  ExtraSources = new SourceCollection();
 
   FileSystem.AddSource(ExtraSources, 1);
 }
@@ -90,38 +90,24 @@ void SourceManager::CloseAllArchives(){
 
 }
 
-M4::File* EndSource::OpenFile( const VC05string& path, bool something ){
-  string normpath = NormalizedPath(path.c_str(), path.size());
-
-  BOOST_FOREACH(::FileSource* source, ExtraSources){
-    M4::File* file = source->GetEngineFile(normpath);
-
-    if(file != NULL){
-      return file;
-    }
-  }
-
-  return NULL;
+int SourceManager::UnmountFilesFromSource( ::FileSource* source ){
+  return Overrider->UnmountFilesFromSource(source);
 }
 
-bool EndSource::GetFileExists( const VC05string& path ){
-  string normpath = NormalizedPath(path.c_str(), path.size());
 
-  BOOST_FOREACH(::FileSource* source, ExtraSources){
-    if(source->FileExist(normpath))return true;
-  }
-
-  return false;
+void SourceManager::MountFile(const string& path, MountedFile& File, bool TriggerModifed /*= false*/ ){
+  Overrider->MountFile(path, File, TriggerModifed);
 }
 
-std::int64_t EndSource::GetFileModificationTime( const VC05string& path ){
-  string normpath = NormalizedPath(path.c_str(), path.size());
-
-  BOOST_FOREACH(::FileSource* source, ExtraSources){
-    if(source->FileExist(normpath)){
-      return source->GetFileModificationTime(normpath);
-    }
-  }
-
-  return 0;
+void SourceManager::MountFilesList( Archive* source, vector<pair<string, int>>& fileList, int GroupId ,bool triggerModifed /*= false */ ){
+  Overrider->MountFilesList(source, fileList, triggerModifed);
 }
+
+bool SourceManager::UnmountFile(const string& path){
+  return Overrider->UnmountFile(path);
+}
+
+void SourceManager::MountSource( ::FileSource* source ){
+  ExtraSources->AddSource(source);
+}
+

@@ -3,45 +3,26 @@
 #include "StringUtil.h"
 #include "C7ZipLibrary.h"
 #include "NSRootDir.h"
-#include <boost/iostreams/device/mapped_file.hpp>
 
 //using namespace std;
-using namespace boost::iostreams;
-
-extern C7ZipLibrary* SevenZip;
 
 M4::File* ResourceOverrider::OpenFile(const VC05string& path, bool something){
 
   string NormPath = NormalizedPath(path.c_str(), path.size());
 
-  if(MapArchive != NULL){ 
-    int fileIndex = MapArchive->GetFileIndex(NormPath);
-
-    if(fileIndex != -1){
-      return MapArchive->GetEngineFile(fileIndex);
-    }
-  }
-
   auto result = FileOverrides.find(NormPath);
-  if(result == FileOverrides.end())return NULL;
+  
+  if(result == FileOverrides.end()){
+    return GetEngineFile(NormPath);
+  }
   
   return result->second.MakeEngineFileObj();
 }
 
-bool ResourceOverrider::GetFileExists(const VC05string& path) {
-
+bool ResourceOverrider::GetFileExists(const VC05string& path){
   string NormPath = NormalizedPath(path.c_str(), path.size());
 
-  if(MapArchive != NULL && MapArchive->GetFileIndex(NormPath) != -1){ 
-    return true;
-  }
-
-  return FileOverrides.find(NormPath) != FileOverrides.end();
-}
-
-void ResourceOverrider::MountMapArchive(Archive* archive){
-  archive->FileMounted(-1);
-  MapArchive = archive;
+  return FileOverrides.find(NormPath) != FileOverrides.end() || FileExists(NormPath);
 }
 
 int ResourceOverrider::UnmountGroup(int GroupId){
@@ -60,93 +41,59 @@ int ResourceOverrider::UnmountGroup(int GroupId){
   return count;
 }
 
-void ResourceOverrider::UnmountFilesFromArchive(Archive* source){
+int ResourceOverrider::UnmountFilesFromSource(::FileSource* source){
+
+  int count = 0;
 
   for(auto it = FileOverrides.begin(); it != FileOverrides.end(); ) {
-    if(it->second.FromArchive(source)) {
+    if(it->second.FromSource(source)) {
       ChangedFiles.push_back(VC05string(it->first));
 
       FileOverrides.erase(it++);
+      count++;
     }else{
       ++it;
     }
   }
+
+  return count;
 }
 
 int64_t ResourceOverrider::GetFileModificationTime(const VC05string& path){
   string NormPath = NormalizedPath(path.c_str(), path.size());
 
-  if(MapArchive != NULL){ 
-    int fileIndex = MapArchive->GetFileIndex(NormPath);
-
-    if(fileIndex != -1){
-      return MapArchive->GetModifiedTime(fileIndex);
-    }
-  }
-
   auto result = FileOverrides.find(NormPath);
 
-  if(result == FileOverrides.end())return 0;
+  if(result == FileOverrides.end())return GetFileModifiedTime(NormPath);
 
   return result->second.GetFileModifiedTime();
 }
 
-void ResourceOverrider::GetChangedFiles(std::vector<VC05string>& ChangedFileList){
-
-  if(ChangedFiles.size() != 0)return;
-
-  BOOST_FOREACH(VC05string& file, ChangedFiles){
-    ChangedFileList.push_back(std::move(file));
+void ResourceOverrider::UnmountMapArchive(){
+  if(MapArchive != NULL){
+    RemoveSource(MapArchive);
+    MapArchive->FileUnMounted(-1);
   }
 
-  ChangedFiles.clear();
+  MapArchive = NULL;
 }
 
-void* OverrideEntry::Lock(uint32_t start, uint32_t size){
-  //sadly boosts mapped_file doesn't give us a way to unmap a view and map another at a different offset so just map the whole file
-  return ((char*)Lock())+start;
+void ResourceOverrider::MountMapArchive( Archive* archive ){
+  archive->FileMounted(-1);
+
+  if(MapArchive != NULL)UnmountMapArchive();
+  MapArchive = archive;
+  AddSource(MapArchive);
 }
 
-void* OverrideEntry::Lock(){
+void ResourceOverrider::GetFilesFromSource(::FileSource* source, vector<pair<const std::string, MountedFile>*>& FoundFiles ){
 
-  if(Data == NULL){
-    try{
-      if(IsInArchive()){
-        Data.reset((char*)ContainingArchive->ExtractFileToMemory(FileIndex));
-      }else{
-        MappedFile = new mapped_file(OverriderFile.wstring());
+  for(auto it = FileOverrides.begin(); it != FileOverrides.end(); ) {
+    ::FileSource* entrySource = it->second.GetSource();
 
-        Data.reset((char*)MappedFile->data());
-      }
-    }catch(exception e){
-      return NULL;
+    if(entrySource == source) {
+      FoundFiles.push_back(&*it);
     }
   }
-
-  return Data.get();
 }
 
-void OverrideEntry::UnLock(){
-  if(IsInArchive()){
-    Data.reset();
-  }else{
-    if(MappedFile != nullptr)delete MappedFile;
-    MappedFile = nullptr;
-  }
-}
-
-uint32_t OverrideEntry::GetLength(){
-  if(IsInArchive()){
-    return ContainingArchive->GetFileSize(FileIndex);
-  }else{
-    return boostfs::file_size(OverriderFile);
-  }
-}
-
-M4::File* OverrideEntry::MakeEngineFileObj(){
-  if(IsInArchive()){
-    return ContainingArchive->GetEngineFile(FileIndex);
-  }else{
-    return new DirEngineFile(OverriderFile);
-  }
-}

@@ -19,7 +19,9 @@ public:
   }
 
   static void* NewOperator(size_t size){
-    return Instance->NewOp(size);
+    void * ret = Instance->NewOp(size);
+
+    return ret;
   }
 
   static void DeleteOperator(void* p){
@@ -31,6 +33,7 @@ private:
 
   HMODULE vc2005, vc2005cpp;
   deleteFuncPtr DeleteOp;
+  deleteFuncPtr ArrayDeleteOp;
   newFuncPtr NewOp;
 };
 
@@ -46,11 +49,11 @@ public:
     Init(s, strlen(s));
   }
 
-  VC05string(VC05string&& other):length(0), capacity(16), buffptr(NULL){
+  VC05string(VC05string&& other):length(0), capacity(15), buffptr(NULL){
     *this = std::move(other);
   }
 
-  VC05string() :length(0), capacity(16), buffptr(NULL){
+  VC05string() :length(0), capacity(15), buffptr(NULL){
   }
 
   VC05string(const std::string& other){
@@ -58,7 +61,13 @@ public:
   }
 
   ~VC05string(){
-    if(capacity > 16)VC2005RunTime::DeleteOperator(buffptr);
+
+    if(HasAllocatedBuffer())VC2005RunTime::DeleteOperator(buffptr);
+    buffptr = 0;
+  }
+
+  bool HasAllocatedBuffer() const{
+    return capacity > 15;
   }
 
   std::string ToVC10String() const{
@@ -87,16 +96,18 @@ public:
   VC05string& VC05string::operator =(VC05string&& other){ 
 
     if(this != &other){
-      if(other.size() > 16){
-        if(capacity > 16)VC2005RunTime::DeleteOperator(buffptr);
+      if(other.HasAllocatedBuffer()){
+        if(HasAllocatedBuffer())VC2005RunTime::DeleteOperator(buffptr);
 
         buffptr = other.buffptr;
+        capacity = other.capacity;
+        length = other.length;
       }else{
         SetNewString(other.c_str(), other.size());
       }
 
       other.buffptr = NULL;
-      other.capacity = 16;
+      other.capacity = 15;
       other.length = 0;
     }
 
@@ -110,7 +121,7 @@ public:
   }
 
   const char* c_str() const{
-    return capacity > 16 ? buffptr : buff;
+    return HasAllocatedBuffer() ? buffptr : buff;
   }
   
   int size() const{
@@ -148,7 +159,7 @@ public:
 
   void CheckSpace(){
     if(size()+1 > capacity()){
-      reallocate(size()*2);
+      reallocate(size() != 0 ? size()*2 : 12);
     }
   }
 
@@ -157,25 +168,30 @@ public:
 
     int CurrentCount = size();
 
-    pointer NewArray = reinterpret_cast<pointer>(VC2005RunTime::NewOperator(newsize));
-    memcpy(NewArray, First, CurrentCount*sizeof(T));
-    VC2005RunTime::DeleteOperator(First);
+    pointer NewArray = reinterpret_cast<pointer>(VC2005RunTime::NewOperator(newsize*sizeof(T)));
+    
+    if(CurrentCount != 0){
+      memcpy(NewArray, First, CurrentCount*sizeof(T));
+    }
+
+    if(First != NULL)VC2005RunTime::DeleteOperator(First);
 
     First = NewArray;
     End = NewArray+newsize;
     Last = NewArray+CurrentCount;
   }
-
+  /*
   void push_back(rvalue_reference value){
     CheckSpace();
    // init the element with placement new
-    new (&++Last)T(value);
+    new (Last++)T(value);
   }
-
+*/
   void push_back(reference value){
     CheckSpace();
     //init the element with placement new
-    new (&++Last)T(value);
+    new (Last)T(value);
+    Last++;
   }
 
   T& operator [](int i){

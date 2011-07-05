@@ -86,7 +86,7 @@ extern "C" {
 
 #include <map>
 #include <hash_map>
-
+#include <unordered_map>
 //#define BOOST_HAS_HASH
 #include <boost/foreach.hpp>
 
