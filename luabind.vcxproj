@@ -29,6 +29,9 @@
     <ClCompile Include="luabind\src\weak_ref.cpp" />
     <ClCompile Include="luabind\src\wrapper_base.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="luabind.manifest" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D59C26E7-CF21-45A3-8710-3B4AD83FD05D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -82,6 +85,7 @@
       <ImportLibrary>$(TargetDir)luabind.lib</ImportLibrary>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
+      <EnableUAC>false</EnableUAC>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
@@ -90,6 +94,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <Manifest>
       <AssemblyIdentity>
       </AssemblyIdentity>
+      <AdditionalManifestFiles>luabind.manifest</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -112,6 +117,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <ImportLibrary>$(TargetDir)luabind.lib</ImportLibrary>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
+      <EnableUAC>false</EnableUAC>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
@@ -121,6 +127,7 @@ copy "$(TargetDir)$(TargetName).lib" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <Manifest>
       <AssemblyIdentity>
       </AssemblyIdentity>
+      <AdditionalManifestFiles>luabind.manifest</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

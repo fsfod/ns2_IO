@@ -64,14 +64,19 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>luabind.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>
+      </DelayLoadDLLs>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
+      <EnableUAC>false</EnableUAC>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
 copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName).pdb"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>NS2_IO.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -95,14 +100,19 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <OptimizeReferences>true</OptimizeReferences>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>luabind.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>
+      </DelayLoadDLLs>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
+      <EnableUAC>false</EnableUAC>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
 copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName).pdb"</Command>
     </PostBuildEvent>
+    <Manifest>
+      <AdditionalManifestFiles>NS2_IO.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="7zHelpers.h" />
@@ -169,6 +179,9 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /DEF:engine.def /machine:x86</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">engine.lib</Outputs>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="NS2_IO.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
