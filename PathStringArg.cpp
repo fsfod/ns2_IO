@@ -77,5 +77,9 @@ const PlatformString& PathStringArg::ConvertAndValidate(const char* VaribleName)
 		throw std::runtime_error(string(VaribleName)+" cannot contain the directory up string \"..\"");
 	}
 
+  if(CachedConvertedString[0] == L'.' || CachedConvertedString.back() == L'.'){
+    throw std::runtime_error(string(VaribleName)+" cannot contain dot . at the start or the end of the string");
+  }
+
 	return CachedConvertedString;
 }

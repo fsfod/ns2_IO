@@ -5,8 +5,8 @@
 #include <codecvt>
 
 
-static const wchar_t* InvalidPathChars = _T(":%|<>\"$"); 
-static const wchar_t* InvalidFileNameChars = _T(":%|<>\"$/\\"); 
+static const wchar_t* InvalidPathChars = _T(":%|<>\"$");
+static const wchar_t* InvalidFileNameChars = _T("[]:%|<>\"'$/\\");
 
 std::wstring AsciiToWString(const char* s, int len);
 
