@@ -33,16 +33,16 @@ void SourceManager::SetupFilesystemMounting(){
     throw exception("Failed to get engine.dll handle");
   }
 */
+
   M4::FileSystem& FileSystem = M4::Singleton<M4::FileSystem>::Get();
+
 
   OverrideSource = Overrider = new ResourceOverrider();
 
   //make sure theres space for ResourceOverrider by adding a dummy
-  FileSystem.AddSource(nullptr, 1);
+  FileSystem.AddSource2(nullptr, 1);
 
    M4::FileListType& FileSystemList = FileSystem.FileList;
-
-  int listsize = FileSystemList.size();
 
   //shift everything up a slot so we can add our override source at the start
   FileSystemList.pop_back();
@@ -50,7 +50,7 @@ void SourceManager::SetupFilesystemMounting(){
 
   ExtraSources = new SourceCollection();
 
-  FileSystem.AddSource(ExtraSources, 1);
+  FileSystem.AddSource2(ExtraSources, 1);
 }
 
 

@@ -57,7 +57,7 @@ public:
   void MountMapArchive(Archive* archive);
   void UnmountMapArchive();
 
-  M4::File* OpenFile(const VC05string& path, bool something);
+  M4::File* OpenFile(M4::Allocator* alc ,const VC05string& path, bool something);
   bool GetFileExists(const VC05string& path);
 
   VC05string GetDescription(){

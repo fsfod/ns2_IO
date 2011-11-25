@@ -6,14 +6,14 @@
 
 //using namespace std;
 
-M4::File* ResourceOverrider::OpenFile(const VC05string& path, bool something){
+M4::File* ResourceOverrider::OpenFile(M4::Allocator* alc, const VC05string& path, bool something){
 
   string NormPath = NormalizedPath(path.c_str(), path.size());
 
   auto result = FileOverrides.find(NormPath);
   
   if(result == FileOverrides.end()){
-    return GetEngineFile(NormPath);
+    return GetEngineFile(NormPath, alc);
   }
   
   return result->second.MakeEngineFileObj();

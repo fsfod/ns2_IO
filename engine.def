@@ -1,6 +1,8 @@
 LIBRARY engine
 EXPORTS
-?AddSource@FileSystem@M4@@QAEXPAVFileSource@2@I@Z
+?s_instance@?$Singleton@VFileSystem@M4@@@M4@@0PAVFileSystem@2@A
+?s_instance@?$Singleton@VLog@M4@@@M4@@0PAVLog@2@A
+?AddSource@FileSystem@M4@@AAEXPAVFileSource@2@I@Z
 ?RemoveSource@FileSystem@M4@@QAEXPAVFileSource@2@@Z
 ?Get@?$Singleton@VFileSystem@M4@@@M4@@SAAAVFileSystem@2@XZ
 ?Get@?$Singleton@VLog@M4@@@M4@@SAAAVLog@2@XZ

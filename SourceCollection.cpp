@@ -1,12 +1,15 @@
 #include "StdAfx.h"
 #include "SourceCollection.h"
 
-M4::File* SourceCollection::OpenFile(const VC05string& path, bool something ){
+extern void LogMessage(const char* msg);
+
+M4::File* SourceCollection::OpenFile( M4::Allocator* alc, const VC05string& path, bool something )
+{
 
   try{
     string normpath = NormalizedPath(path.c_str(), path.size());
 
-    return GetEngineFile(normpath);
+    return GetEngineFile(normpath, alc);
   }catch(exception e){
     LogMessage(e.what());
   }

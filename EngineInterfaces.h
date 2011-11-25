@@ -2,14 +2,12 @@
 
 #include "VC2005Compat.h"
 
-//#define LogMessage(msg) M4::Singleton<Log>::Get() << msg
-
-
+ 
 namespace M4{
 
   template<typename T> class Singleton{
     public:
-      static T& Get();
+       static T& Get();
   };
 
   class Log{
@@ -18,9 +16,19 @@ namespace M4{
   };
   
 
+  class Allocator{
+
+   public:
+    virtual ~Allocator(){}
+
+    virtual void* AllocateAligned(size_t size, int alignment) = 0;
+    virtual void Free(void* data);
+    virtual void ReallocateAligned(void *data, size_t size, int alignment) = 0;
+    virtual size_t GetAllocationSize(void *data) = 0;
+  };
+
   class File{
    public:
-    virtual ~File(){}
     virtual uint32_t GetLength() = 0;
   
     //these 2 can't have the same name seems to mess up how the vtable is generated
@@ -28,13 +36,15 @@ namespace M4{
     virtual void* Lock() = 0;
   
     virtual void UnLock() = 0;
+
+    virtual void Destroy(int deleteOptions) = 0;
   };
 
   class FileSource{
    public:
     virtual ~FileSource(){}
   
-    virtual M4::File* OpenFile(const VC05string& path, bool something) = 0;
+    virtual M4::File* OpenFile(M4::Allocator* alc, const VC05string& path, bool something) = 0;
     virtual bool GetFileExists(const VC05string& path) = 0;
     virtual int64_t GetFileModificationTime(const VC05string& path) = 0;
 
@@ -56,16 +66,20 @@ namespace M4{
    public:
     virtual ~FileSystem(){}
 
+   void AddSource2(M4::FileSource* Source, unsigned int flags){
+     AddSource(Source, flags);
+   }
+
+   int padding1;
+
+   FileListType FileList;
+
+   private:
     void AddSource(M4::FileSource* Source, unsigned int flags);
     void RemoveSource(M4::FileSource *Source);
-
-    FileListType FileList;
   };
 };
 
-
-
-
-static inline void LogMessage(const char* msg){
+static void LogMessage(const char* msg){
   M4::Singleton<M4::Log>::Get() << msg;
 }

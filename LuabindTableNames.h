@@ -2,7 +2,13 @@
 
 #define CreateString(str) #str
 
-#define MakeUniqueString(str) CreateString(str##2)
+#if defined(LUABIND_DYNAMIC_LINK)
+  #define MakeUniqueString(str) CreateString(str##2)
+#else
+//CreateString(str) ## __TIME__
+  #define MakeUniqueString(str) CreateString(str##9)
+#endif
+
 
 #define __luabind_class MakeUniqueString(__luabind_class)
 

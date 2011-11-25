@@ -16,7 +16,7 @@ public:
     SourceList.clear();
   }
 
-  virtual M4::File* OpenFile( const VC05string& path, bool something );
+  virtual M4::File* OpenFile(M4::Allocator* alc, const VC05string& path, bool something );
 
   virtual VC05string GetDescription(){
     return VC05string("EndSource");
@@ -26,9 +26,9 @@ public:
   virtual void GetChangedFiles(VC05Vector<VC05string>& ChangedFiles);
   virtual int64_t GetFileModificationTime(const VC05string& path);
 
-  M4::File* GetEngineFile(const string& path){
+  M4::File* GetEngineFile(const string& path, M4::Allocator* alc ){
     BOOST_FOREACH(::FileSource* source, SourceList){
-      M4::File* file = source->GetEngineFile(path);
+      M4::File* file = source->GetEngineFile(path,  alc);
 
       if(file != NULL){
         return file;

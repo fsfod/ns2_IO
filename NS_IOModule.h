@@ -29,6 +29,7 @@ class LuaModule{
     static int LoadLuaDllModule(lua_State* L, FileSource* Source, const PathStringArg& DllPath );
 		
 		static int LoadLuaFile(lua_State* L, const PlatformPath& FilePath, const char* chunkname);
+    static void LoadLuaFile_LUA(lua_State* L, const PathStringArg& ScriptPath);
 
     static void ExtractResource(FileSource* Archive, const PathStringArg& FileInArchive, const PathStringArg& DestinationPath);
 
@@ -64,7 +65,8 @@ class LuaModule{
 public:
     LuaModule(lua_State* L);
     ~LuaModule(){}
-    
+   
+
     luabind::object MessageFunc;
     static DirectoryFileSource* ModDirectory;
 };

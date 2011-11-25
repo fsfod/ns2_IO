@@ -43,7 +43,7 @@ public:
   virtual void MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath);
 
 	// Called directly by Lua
-	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
+	int LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
 
 	const std::string& get_Path(){return FileSystemPath;}
 
@@ -67,7 +67,7 @@ public:
 
   shared_ptr<FileSource> GetLuaPointer();
 
-  M4::File* GetEngineFile(const string& path);
+  M4::File* GetEngineFile(const string& path, M4::Allocator* alc);
 
   virtual bool FileExist(const string& path){
     return PathToFile.find(path) != PathToFile.end();
@@ -125,7 +125,7 @@ private:
         Owner->FileMounted(FileIndex);
       }
 
-      virtual ~ArchiveFile(){
+      virtual void Destroy(int options){
         UnLock();
         Owner->FileUnMounted(FileIndex);
       }

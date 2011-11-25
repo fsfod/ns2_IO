@@ -18,13 +18,13 @@ public:
 	virtual int FindDirectorys(const PathStringArg& SearchPath, const PathStringArg& NamePatten, FileSearchResult& FoundDirectorys) = 0;
 	virtual bool FileSize(const PathStringArg& path, double& Filesize) = 0;
 	virtual bool GetModifiedTime(const PathStringArg& Path, int32_t& Time) = 0;
-	virtual void LoadLuaFile(lua_State* L, const PathStringArg& path) = 0;
+  virtual int LoadLuaFile(lua_State* L, const PathStringArg& path) = 0;
 
   virtual void MountFile(const PathStringArg& FilePath, const PathStringArg& DestinationPath) = 0;
   virtual void MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath) = 0;
   
   //both these must be passed normalized paths
-  virtual M4::File* GetEngineFile(const string& path) = 0;
+  virtual M4::File* GetEngineFile(const string& path, M4::Allocator* alc) = 0;
   virtual bool FileExist(const string& path) = 0;
   virtual int64_t GetFileModificationTime(const string& path) = 0;
   virtual void GetChangedFiles( VC05Vector<VC05string>& ChangedFiles ){

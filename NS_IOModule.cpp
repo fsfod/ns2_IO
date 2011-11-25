@@ -17,6 +17,8 @@
 
 #include "ResourceOverrider.h"
 #include "SourceManager.h"
+#include "SQLite3Database.h"
+#include "SQLTableMetaData.h"
 
 using namespace  std;
 
@@ -124,6 +126,8 @@ void LuaModule::LoadExtractCache(){
   //ExtractedFileCache.Load(CacheDirectory, ModDirectory->GetFileSystemPath());
 }
 
+SQLiteDatabase clientDB;
+
 void LuaModule::StaticInit(lua_State* L){
 
   if(!FirstLoad)return;
@@ -184,6 +188,13 @@ void LuaModule::StaticInit(lua_State* L){
   }
 
   SourceManager::SetupFilesystemMounting();
+
+  try{
+    clientDB.Open(NSRootPath/"SavedVariables/client.sqlitedb");
+    SQLTableMetaData::Init(&clientDB);
+  }catch (SQLiteException& e){
+    PrintMessage(L, e.what());
+  }
 
  // LoadExtractCache();
 }
@@ -534,7 +545,7 @@ bool LuaModule::IsRootFileSource(FileSource* source){
 	return false;
 }
 
-	const string& LuaModule::GetGameString(){
+const string& LuaModule::GetGameString(){
 	return GameString;
 }
 
@@ -554,20 +565,69 @@ int LuaModule::LoadLuaDllModule(lua_State* L, FileSource* Source, const PathStri
 
   string EntryPoint = string("luaopen_")+FileName.replace_extension().string();
 
+  //LoadDLL();
+
+  int stackTop = lua_gettop(L);
+
   lua_getfield(L, LUA_GLOBALSINDEX, "package");
   lua_getfield(L, -1, "loadlib");
   lua_remove(L, -2);
 
+  
+  wchar_t Dummy[2];
+  int pathLength = GetDllDirectory(0, (LPWSTR)&Dummy);
+  
+  wstring oldPath(pathLength, 0);
+ 
+  if(pathLength != 0){
+    GetDllDirectory(pathLength, const_cast<wchar_t*>(oldPath.c_str()));
+  }
+
+  SetDllDirectory(ModDirectory->GetFileSystemPath().c_str());
+  
+  
+  int realLength = GetLongPathName(ModulePath.c_str(), NULL, 0);
+  
+  wstring RealPath;
+
+  if(realLength != 0){
+    RealPath.resize(realLength+1, 0);
+
+    GetLongPathName(ModulePath.c_str(), const_cast<wchar_t*>(RealPath.c_str()), realLength);
+
+    ModulePath = RealPath;
+    HMODULE handle = LoadLibrary(ModulePath.c_str());
+  }
+
   lua_pushstring(L, ModulePath.string().c_str());
   lua_pushstring(L, EntryPoint.c_str());
+
   lua_call(L, 2, 2);
 
-  return 2;
+  SetDllDirectory(oldPath.c_str());
 
+  return 3;
 }
 
-int LuaModule::LoadLuaFile( lua_State* L, const PlatformPath& FilePath, const char* chunkname )
-{
+void LuaModule::LoadLuaFile_LUA(lua_State* L, const PathStringArg& ScriptPath){
+  ConvertAndValidatePath(ScriptPath);
+
+
+  BOOST_FOREACH(FileSource& source, RootDirs){
+    if(source.FileExists(ScriptPath)){
+      int result = source.LoadLuaFile(L, ScriptPath);
+      
+      if(result != 0) {
+        lua_pushnil(L);
+        lua_insert(L, lua_gettop(L)-1);
+      }
+      
+      return;
+    }
+  }
+}
+
+int LuaModule::LoadLuaFile(lua_State* L, const PlatformPath& FilePath, const char* chunkname){
 
 	using namespace boost::iostreams;
 

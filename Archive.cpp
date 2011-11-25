@@ -302,13 +302,12 @@ void* Archive::ExtractFileToMemory(uint32_t FileIndex){
   return stream.TransferBufferOwnership();
 }
 
-void Archive::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
+int Archive::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 
 	auto file = PathToFile.find(FilePath.GetNormalizedPath());
 	
 	if(file == PathToFile.end()){
-			throw exception("cannot load a lua file that does not exist");
-		return;
+	  throw exception("cannot load a lua file that does not exist");
 	}
 
 	uint32_t index = file->second.FileIndex;
@@ -320,9 +319,7 @@ void Archive::LoadLuaFile(lua_State* L, const PathStringArg& FilePath){
 
 	Reader->Extract(&index, 1, false, &extract);
 
-  stream.LoadChunk(L, (ArchiveName+FilePath.ToString()).c_str());
-
-	return;
+  return stream.LoadChunk(L, (ArchiveName+FilePath.ToString()).c_str());
 }
 
 uint32_t Archive::GetFileCRC( int FileIndex ){
@@ -373,12 +370,12 @@ void Archive::CreateMountList(const std::string& BasePath, const std::string& pa
 
 }
 
-M4::File* Archive::GetEngineFile( const string& path ){
+M4::File* Archive::GetEngineFile(const string& path, M4::Allocator* alc ){
   int FileIndex = GetFileIndex(path);
 
   if(FileIndex == -1)return NULL;
 
-  return new ArchiveFile(this, FileIndex);
+  return new (alc->AllocateAligned(sizeof(ArchiveFile), 4)) ArchiveFile(this, FileIndex);
 }
 
 std::int64_t Archive::GetFileModificationTime( const string& path ){

@@ -40,7 +40,7 @@ public:
   virtual bool FileExist(const string& path);
   virtual int64_t GetFileModificationTime(const string& path);
   virtual void GetChangedFiles(VC05Vector<VC05string>& changes);
-  virtual M4::File* GetEngineFile(const string& path);
+  virtual M4::File* GetEngineFile(const string& path, M4::Allocator* alc);
 
   PlatformPath MakePlatformPath(std::string path) const{
     return RealPath/path;
@@ -86,7 +86,7 @@ public:
   template<typename T> void ForEachFile(PlatformPath SubDirectory, T func);
 
 private:
-	void LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
+  int LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
   int RelativeRequire(lua_State* L, const PathStringArg& ModuleName );
 
   PathString GameFileSystemPath;
@@ -97,7 +97,7 @@ private:
 	DirectoryFileSource* ParentSource;
   std::map<string, DirectoryFileSource*> ChildSources;
   
-  std::map<string, string> MountedFiles;
+  std::unordered_map<string, string> MountedFiles;
 };
 
 class DirEngineFile :public M4::File{
@@ -108,7 +108,7 @@ public:
   DirEngineFile(PlatformPath filepath, shared_ptr<void>& PreloadedData):FilePath(filepath), Data(PreloadedData){
   }
 
-  ~DirEngineFile(){
+  void Destroy(int options){
     UnLock();
   }
 

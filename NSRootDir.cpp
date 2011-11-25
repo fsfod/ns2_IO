@@ -115,7 +115,8 @@ bool DirectoryFileSource::GetModifiedTime( const PathStringArg& Path, int32_t& T
 
 const string luaExt(".lua");
 
-void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePath ){
+int DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePath )
+{
 
 	auto path = RealPath/ConvertAndValidatePath(FilePath);
 
@@ -128,10 +129,10 @@ void DirectoryFileSource::LoadLuaFile( lua_State* L, const PathStringArg& FilePa
 
   boost::replace(chunkpath, '/', '\\');
 
-	LuaModule::LoadLuaFile(L, path, ('@'+chunkpath).c_str() );
+	int result = LuaModule::LoadLuaFile(L, path, ('@'+chunkpath).c_str() );
 
 	//loadfile should of pushed either a function or an error message on to the stack leave it there as the return value
-	return;
+	return result;
 }
 
 int DirectoryFileSource::RelativeRequire(lua_State* L, const PathStringArg& ModuleName ){
@@ -221,10 +222,17 @@ private:
 
 };
 
+inline void AppendDirtoPath(string& path, const string& dir){
+  path.reserve(path.size()+dir.size()+2);
+  path.append(dir);
+  path.push_back('/');
+}
 
 void DirectoryFileSource::MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath){
-  
-  PlatformPath::string_type NormBasePath = ConvertAndValidatePath(BasePath);
+  ConvertAndValidatePath(BasePath);
+
+  string NormBasePath = BasePath.GetNormalizedPath();
+   NormBasePath.push_back('/');
 
   PlatformPath CurrentPath = BasePath.CreatePath(RealPath);
   string CurrentDestPath = DestinationPath.GetNormalizedPath();
@@ -234,42 +242,52 @@ void DirectoryFileSource::MountFiles(const PathStringArg& BasePath, const PathSt
   }
 
   std::wstring& CurrentPathS =  const_cast<std::wstring&>(CurrentPath.native());
+  CurrentPathS.reserve(255);
 
   int pathOffset  = RealPath.native().size();
 
   std::function<void(const FileInfo&)> foreachFunc = [&](const FileInfo& file) mutable ->void {
     if(file.IsDirectory()){
-      int namesize = CurrentDestPath.size();
+      int namesize = CurrentPathS.size();
       
-      CurrentDestPath.append(file.GetName());
-      CurrentDestPath.push_back('/');
+      string dirname = file.GetNormlizedNameWithSlash();
+
+      NormBasePath.append(dirname);
+      CurrentDestPath.append(dirname);
 
       CurrentPath /= file.cFileName;
       
-      namesize = CurrentDestPath.size()-namesize;
-
       //lambda recursion fun times
       ForEachFile(CurrentPath.c_str()+pathOffset, foreachFunc);
 
       //shrink the path back down one directory
-      CurrentPathS.resize(CurrentPathS.size()-namesize);
-      CurrentDestPath.resize(CurrentDestPath.size()-namesize);
+      CurrentPathS.resize(namesize);
 
+      CurrentDestPath.resize(CurrentDestPath.size()-dirname.size());
+      NormBasePath.resize(NormBasePath.size()-dirname.size());
     }else{
       //CurrentDestPath
-      SourceManager::MountFile(CurrentDestPath+file.GetNormlizedName(), MountedFile(this, CurrentPath/file.cFileName, false));
+      string FileName = file.GetNormlizedName();
+      string MountedPath = CurrentDestPath+FileName;
+
+      SourceManager::MountFile(MountedPath, MountedFile(this, CurrentPath/file.cFileName, false));
+
+      MountedFiles.insert(std::make_pair(NormBasePath+FileName, std::move(MountedPath))); 
     }
   };
 
   ForEachFile(BasePath.ToString(),  foreachFunc);
 }
 
-M4::File* DirectoryFileSource::GetEngineFile(const string& path){
+M4::File* DirectoryFileSource::GetEngineFile( const string& path, M4::Allocator* alc )
+{
   PlatformPath fullpath = RealPath/path;
 
   if(!boostfs::exists(fullpath))return NULL;
 
-  return new DirEngineFile(fullpath);
+
+
+  return new (alc->AllocateAligned(sizeof(DirEngineFile), 4)) DirEngineFile(fullpath);
 }
 
 DirectoryFileSource* DirectoryFileSource::CreateChildSource( const string& SubDirectory ){

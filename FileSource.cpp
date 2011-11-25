@@ -78,7 +78,7 @@ luabind::object FileSource::Lua_FindDirectorys(lua_State *L, const PathStringArg
 
 void FileSource::Lua_LoadLuaFile(lua_State *L, const PathStringArg& path){
 	ConvertAndValidatePath(path);
-	this->LoadLuaFile(L, path);
+	int result = this->LoadLuaFile(L, path);
 }
 
 

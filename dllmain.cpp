@@ -34,6 +34,7 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		def("DateModified",  &LuaModule::GetDateModified),
 		def("GetGameString",  &LuaModule::GetGameString),
 		def("GetDirRootList",  &LuaModule::GetDirRootList),
+    def("LoadLuaFile", &LuaModule::LoadLuaFile_LUA),
 		def("GetCommandLineRaw", &LuaModule::GetCommandLineRaw),
     
     def("GetSupportedArchiveFormats", &LuaModule::GetSupportedArchiveFormats),

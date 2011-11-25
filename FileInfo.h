@@ -23,6 +23,18 @@ public:
     return path;
   }
 
+  string GetNormlizedNameWithSlash() const{
+    int nameLength = wcslen(cFileName);
+    string path;
+    path.reserve(nameLength+2);
+
+    UTF16ToUTF8STLString(reinterpret_cast<const wchar_t*>(&cFileName), nameLength, path);
+    boost::to_lower(path);
+    path.push_back('/');
+
+    return path;
+  }
+
   uint64_t GetFileSize() const{
     return nFileSizeLow | ((uint64_t)nFileSizeHigh << 32);
   }
