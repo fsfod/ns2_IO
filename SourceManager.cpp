@@ -36,8 +36,7 @@ void SourceManager::SetupFilesystemMounting(){
 
   M4::FileSystem& FileSystem = M4::Singleton<M4::FileSystem>::Get();
 
-
-  OverrideSource = Overrider = new ResourceOverrider();
+  OverrideSource = Overrider = new (FileSystem.Allocate(sizeof(ResourceOverrider))) ResourceOverrider();
 
   //make sure theres space for ResourceOverrider by adding a dummy
   FileSystem.AddSource2(nullptr, 1);
@@ -48,7 +47,7 @@ void SourceManager::SetupFilesystemMounting(){
   FileSystemList.pop_back();
   FileSystemList.push_front(std::pair<int, M4::FileSource*>(1, Overrider));
 
-  ExtraSources = new SourceCollection();
+  ExtraSources = new (FileSystem.Allocate(sizeof(SourceCollection))) SourceCollection();
 
   FileSystem.AddSource2(ExtraSources, 1);
 }

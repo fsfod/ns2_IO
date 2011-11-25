@@ -42,7 +42,7 @@ namespace M4{
 
   class FileSource{
    public:
-    virtual ~FileSource(){}
+    virtual void Destroy(int options) = 0;
   
     virtual M4::File* OpenFile(M4::Allocator* alc, const VC05string& path, bool something) = 0;
     virtual bool GetFileExists(const VC05string& path) = 0;
@@ -70,7 +70,11 @@ namespace M4{
      AddSource(Source, flags);
    }
 
-   int padding1;
+   void* Allocate(size_t memSize){
+     return alc->AllocateAligned(memSize, 4);
+   }
+
+   Allocator* alc;
 
    FileListType FileList;
 

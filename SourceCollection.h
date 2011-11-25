@@ -8,6 +8,10 @@ public:
   SourceCollection() :SourceList(){
   }
 
+  void Destroy(int options){
+    this->~SourceCollection();
+  }
+
   void AddSource(::FileSource* source);
 
   bool RemoveSource(::FileSource* source);

@@ -13,6 +13,10 @@ public:
   ResourceOverrider(): MapArchive(NULL), FileOverrides(), ChangedFiles(){
   }
 
+  void Destroy(int options){
+    this->~ResourceOverrider();
+  }
+
   void MountFile(const string& path, MountedFile& file, bool TriggerModifed){
     FileOverrides[path] = file;
 
@@ -48,10 +52,6 @@ public:
     }
 
     return false;
-  }
-
-  virtual ~ResourceOverrider(){
-    OutputDebugStringA("~MountedArchiveFilesSource");
   }
 
   void MountMapArchive(Archive* archive);
