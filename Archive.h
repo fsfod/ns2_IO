@@ -6,7 +6,7 @@
 #include "SourceDirectory.h"
 
 
-class C7ZipLibrary;
+class SevenZip;
 struct IInArchive;
 
 
@@ -26,7 +26,7 @@ struct FileEntry{
 class Archive : public FileSource, SourceDirectory<FileEntry>{
 
 public:
-	Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* Reader);
+	Archive(SevenZip* owner, PathString archivepath, IInArchive* Reader);
 	virtual ~Archive();
 
 	bool FileExists(const PathStringArg& path);
@@ -103,7 +103,7 @@ private:
   PlatformPath ArchivePath;
 
 	PathString FileSystemPath;
-	C7ZipLibrary* Owner;
+	SevenZip* Owner;
 	IInArchive* Reader;
 
   int MountedFileCount;

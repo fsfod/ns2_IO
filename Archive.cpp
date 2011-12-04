@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 #include "Archive.h"
-#include "C7ZipLibrary.h"
+#include "SevenZip.h"
 
 #include "7zip/CPP/7zip/Archive/IArchive.h"
 #include "7zip/CPP/Windows/PropVariant.h"
@@ -17,7 +17,7 @@
 //using namespace std;
 using namespace boost::iostreams;
 
-Archive::Archive(C7ZipLibrary* owner, PathString archivepath, IInArchive* reader) : MountedFileCount(0), LuaPointer(){
+Archive::Archive(SevenZip* owner, PathString archivepath, IInArchive* reader) : MountedFileCount(0), LuaPointer(){
 
 	Reader = reader;
 	ArchivePath = archivepath;
