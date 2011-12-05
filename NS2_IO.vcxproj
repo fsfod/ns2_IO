@@ -44,7 +44,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
-    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -59,23 +59,33 @@
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>
-      </DelayLoadDLLs>
+      <DelayLoadDLLs>sqlite3.dll</DelayLoadDLLs>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
       <EnableUAC>false</EnableUAC>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName)$(TargetExt)"
-copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName).pdb"</Command>
+      <Command>set ns2path=$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2
+del "%ns2path%\modloader\$(TargetName).pdb"
+del "%ns2path%\modloader\$(TargetName)$(TargetExt)"
+mklink /h "%ns2path%\modloader\$(TargetName)$(TargetExt)" "$(TargetPath)"
+mklink /h "%ns2path%\modloader\$(TargetName).pdb" "$(TargetDir)$(TargetName).pdb"
+del "%ns2path%\dump\$(TargetName).pdb"
+del "%ns2path%\dump\$(TargetName)$(TargetExt)"
+mklink /h "%ns2path%\dump\$(TargetName)$(TargetExt)" "$(TargetPath)"
+mklink /h "%ns2path%\dump\$(TargetName).pdb" "$(TargetDir)$(TargetName).pdb"</Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>NS2_IO.manifest</AdditionalManifestFiles>
+      <AdditionalManifestFiles>
+      </AdditionalManifestFiles>
+      <UpdateFileHashes>true</UpdateFileHashes>
+      <UpdateFileHashesSearchPath>$(ProjectDir)$(Configuration)_luabind</UpdateFileHashesSearchPath>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -100,8 +110,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <OptimizeReferences>true</OptimizeReferences>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalDependencies>lua5.1.lib;Shlwapi.lib;engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>
-      </DelayLoadDLLs>
+      <DelayLoadDLLs>sqlite3.dll</DelayLoadDLLs>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
       <EnableUAC>false</EnableUAC>
@@ -111,7 +120,8 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
 copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Valve\Steam@InstallPath)\steamapps\common\Natural Selection 2\modloader\$(TargetName).pdb"</Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>NS2_IO.manifest</AdditionalManifestFiles>
+      <AdditionalManifestFiles>
+      </AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -119,12 +129,11 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClInclude Include="7ZipFormatInfo.h" />
     <ClInclude Include="7zip\CPP\Windows\PropVariant.h" />
     <ClInclude Include="Archive.h" />
-    <ClInclude Include="C7ZipLibrary.h" />
+    <ClInclude Include="SevenZip.h" />
     <ClInclude Include="DirectoryChangeWatcher.h" />
     <ClInclude Include="EngineInterfaces.h" />
     <ClInclude Include="ExtractCache.h" />
     <ClInclude Include="FileInfo.h" />
-    <ClInclude Include="LuaErrorWrapper.h" />
     <ClInclude Include="FileSource.h" />
     <ClInclude Include="NSRootDir.h" />
     <ClInclude Include="MountedFile.h" />
@@ -135,6 +144,11 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClInclude Include="SourceCollection.h" />
     <ClInclude Include="SourceDirectory.h" />
     <ClInclude Include="SourceManager.h" />
+    <ClInclude Include="SQLite3Database.h" />
+    <ClInclude Include="SQLiteException.h" />
+    <ClInclude Include="SQLitePreparedStatment.h" />
+    <ClInclude Include="SQLTableMetaData.h" />
+    <ClInclude Include="SQLTableSerializer.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StringUtil.h" />
     <ClInclude Include="targetver.h" />
@@ -146,11 +160,10 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClCompile Include="7zip\CPP\Windows\FileIO.cpp" />
     <ClCompile Include="7zip\CPP\Windows\PropVariant.cpp" />
     <ClCompile Include="Archive.cpp" />
-    <ClCompile Include="C7ZipLibrary.cpp" />
+    <ClCompile Include="SevenZip.cpp" />
     <ClCompile Include="DirectoryChangeWatcher.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="ExtractCache.cpp" />
-    <ClCompile Include="LuaErrorWrapper.cpp" />
     <ClCompile Include="FileSource.cpp" />
     <ClCompile Include="NSRootDir.cpp" />
     <ClCompile Include="MountedFile.cpp" />
@@ -159,6 +172,11 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClCompile Include="SavedVariables.cpp" />
     <ClCompile Include="SourceCollection.cpp" />
     <ClCompile Include="SourceManager.cpp" />
+    <ClCompile Include="SQLite3Database.cpp" />
+    <ClCompile Include="SQLiteException.cpp" />
+    <ClCompile Include="SQLitePreparedStatment.cpp" />
+    <ClCompile Include="SQLTableMetaData.cpp" />
+    <ClCompile Include="SQLTableSerializer.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -171,6 +189,9 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ProjectReference Include="luabind.vcxproj">
       <Project>{d59c26e7-cf21-45a3-8710-3b4ad83fd05d}</Project>
     </ProjectReference>
+    <ProjectReference Include="SQLite\SQLite.vcxproj">
+      <Project>{9f566e9d-5ca8-4117-81d3-950dab03c533}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="engine.def">
@@ -179,9 +200,6 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lib /DEF:engine.def /machine:x86</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">engine.lib</Outputs>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="NS2_IO.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

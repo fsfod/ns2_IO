@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "ResourceOverrider.h"
 #include "StringUtil.h"
-#include "C7ZipLibrary.h"
+#include "SevenZip.h"
 #include "NSRootDir.h"
 
 //using namespace std;

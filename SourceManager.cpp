@@ -1,13 +1,13 @@
 #include "StdAfx.h"
 #include "SourceManager.h"
-#include "C7ZipLibrary.h"
+#include "SevenZip.h"
 #include "Archive.h"
 #include "EngineInterfaces.h"
 #include "ResourceOverrider.h"
 
 #include <boost\algorithm\string\case_conv.hpp>
 
-extern C7ZipLibrary* SevenZip;
+extern SevenZip* SevenZipLib;
 
 std::map<PlatformPath::string_type, Archive*> SourceManager::OpenArchives;
 ResourceOverrider* SourceManager::Overrider = NULL;
@@ -78,7 +78,7 @@ Archive* SourceManager::OpenArchive(const PlatformPath& path){
     return result->second;
   }
 
-  Archive* archive = SevenZip->OpenArchive(normpath);
+  Archive* archive = SevenZipLib->OpenArchive(normpath);
 
   OpenArchives[normpath] = archive;
 

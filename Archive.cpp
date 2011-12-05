@@ -387,6 +387,7 @@ std::int64_t Archive::GetFileModificationTime( const string& path ){
 }
 
 void Archive::CheckDelete(){
+
   if(MountedFileCount == 0 && LuaPointer.use_count() == 0){
     SourceManager::ArchiveClosed(this);
    delete this;

@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NS2_IO", "NS2_IO.vcxproj", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luabind", "luabind.vcxproj", "{D59C26E7-CF21-45A3-8710-3B4AD83FD05D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SQLite3", "SQLite\SQLite.vcxproj", "{9F566E9D-5CA8-4117-81D3-950DAB03C533}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,10 @@ Global
 		{D59C26E7-CF21-45A3-8710-3B4AD83FD05D}.Debug|Win32.Build.0 = Debug|Win32
 		{D59C26E7-CF21-45A3-8710-3B4AD83FD05D}.Release|Win32.ActiveCfg = Release|Win32
 		{D59C26E7-CF21-45A3-8710-3B4AD83FD05D}.Release|Win32.Build.0 = Release|Win32
+		{9F566E9D-5CA8-4117-81D3-950DAB03C533}.Debug|Win32.ActiveCfg = Release|Win32
+		{9F566E9D-5CA8-4117-81D3-950DAB03C533}.Debug|Win32.Build.0 = Release|Win32
+		{9F566E9D-5CA8-4117-81D3-950DAB03C533}.Release|Win32.ActiveCfg = Release|Win32
+		{9F566E9D-5CA8-4117-81D3-950DAB03C533}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

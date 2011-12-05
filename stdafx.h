@@ -109,9 +109,6 @@ using std::exception;
 #include <boost/range/adaptor/map.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <boost/archive/xml_oarchive.hpp>
-#include <boost/archive/xml_iarchive.hpp>
-
 namespace boostfs = boost::filesystem;
 
 typedef boostfs::path PlatformPath;
@@ -130,6 +127,7 @@ typedef std::wstring PlatformString;
 #include "PathStringArg.h"
 
 extern std::string DumpStack(lua_State *L);
+
 
 #pragma warning( disable: 4251)
 
