@@ -3,7 +3,7 @@
 #include "stdafx.h"
 #include "NS_IOModule.h"
 #include "StringUtil.h"
-#include "C7ZipLibrary.h"
+#include "SevenZip.h"
 #include "PathStringConverter.h"
 
 #include "ExtractCache.h"
@@ -23,7 +23,7 @@
 using namespace  std;
 
 PlatformPath NSRootPath(_T(""));
-C7ZipLibrary* SevenZip = NULL;
+SevenZip* SevenZipLib = NULL;
 
 //LuaModule::LuaModule(){
 string LuaModule::CommandLine("");
@@ -142,21 +142,21 @@ void LuaModule::StaticInit(lua_State* L){
   //if -game is set 
   ProcessCommandline();
 
-  auto ServerZipPath = (GameStringPath.empty() ? NSRootPath : GameStringPath) /"7z.dll";
+  auto SevenZipPath = (GameStringPath.empty() ? NSRootPath : GameStringPath) /"7z.dll";
 
-  if(boostfs::exists(ServerZipPath)){
+  if(boostfs::exists(SevenZipPath)){
     try{
-      SevenZip = C7ZipLibrary::Init(ServerZipPath);
+      SevenZipLib = SevenZip::Init(SevenZipPath);
     }catch(exception e){
 
       string msg = "error while loading 7zip library: ";
       msg += e.what();
       PrintMessage(L, msg.c_str());
 
-      SevenZip = NULL;
+      SevenZipLib = NULL;
     }
 
-    if(SevenZip != NULL && GameIsZip){
+    if(SevenZipLib != NULL && GameIsZip){
       try{
         RootDirs.push_back(SourceManager::OpenArchive(GameStringPath));
       }catch(exception e){
@@ -170,7 +170,7 @@ void LuaModule::StaticInit(lua_State* L){
   }
 
   if(GameIsZip){
-   if(SevenZip == NULL) PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
+   if(SevenZipLib == NULL) PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
   }else{
     if(!GameStringPath.empty()){
       ModDirectory = new DirectoryFileSource(GameStringPath, "");
@@ -486,7 +486,7 @@ boost::shared_ptr<FileSource> LuaModule::OpenArchive2(lua_State* L, const PathSt
 
 boost::shared_ptr<FileSource> LuaModule::OpenArchive(lua_State* L, FileSource* ContainingSource, const PathStringArg& Path){
 
-	if(SevenZip == NULL){
+	if(SevenZipLib == NULL){
 		throw exception("Cannot open archive because the 7zip library is not loaded");
 	}
 
@@ -522,7 +522,7 @@ boost::shared_ptr<FileSource> LuaModule::OpenArchive(lua_State* L, FileSource* C
 
 luabind::object LuaModule::GetSupportedArchiveFormats(lua_State *L) {
 
-  auto formats = SevenZip->GetSupportedFormats();
+  auto formats = SevenZipLib->GetSupportedFormats();
 
   lua_createtable(L, 0, RootDirs.size()*2);
   luabind::object table = luabind::object(luabind::from_stack(L,-1));
