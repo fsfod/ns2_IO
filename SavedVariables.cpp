@@ -816,7 +816,6 @@ void SavedVariables::SetExitAutoSaving(bool AutoSave){
 	ExitAutoSave = AutoSave;
 }
 
-extern PlatformPath NSRootPath;
 
 void SavedVariables::RegisterObjects(lua_State *L){
 	
@@ -837,5 +836,5 @@ void SavedVariables::RegisterObjects(lua_State *L){
 	lua_pop(L, 1);
 	*/
 
-	SavedVariablesFolderPath = NSRootPath/"SavedVariables/";
+	SavedVariablesFolderPath = NS2Env.NSRootPath/"SavedVariables/";
 }

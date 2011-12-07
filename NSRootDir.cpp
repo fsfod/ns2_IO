@@ -6,8 +6,6 @@
 #include "DirectoryChangeWatcher.h"
 
 
-extern PlatformPath NSRootPath;
-
 //using namespace std;
 
 namespace boostfs = boost::filesystem ;
@@ -15,7 +13,7 @@ namespace boostfs = boost::filesystem ;
 
 DirectoryFileSource::DirectoryFileSource(char* dirName): ParentSource(NULL), GameFileSystemPath(dirName), ChangeWatcher(NULL){
 
-	RealPath = NSRootPath/dirName;
+	RealPath = NS2Env.NSRootPath/dirName;
 
 	if(GameFileSystemPath.back() != '/'){
 		GameFileSystemPath.push_back('/');

@@ -129,6 +129,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClInclude Include="7ZipFormatInfo.h" />
     <ClInclude Include="7zip\CPP\Windows\PropVariant.h" />
     <ClInclude Include="Archive.h" />
+    <ClInclude Include="NS2Environment.h" />
     <ClInclude Include="SevenZip.h" />
     <ClInclude Include="DirectoryChangeWatcher.h" />
     <ClInclude Include="EngineInterfaces.h" />
@@ -160,6 +161,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClCompile Include="7zip\CPP\Windows\FileIO.cpp" />
     <ClCompile Include="7zip\CPP\Windows\PropVariant.cpp" />
     <ClCompile Include="Archive.cpp" />
+    <ClCompile Include="NS2Environment.cpp" />
     <ClCompile Include="SevenZip.cpp" />
     <ClCompile Include="DirectoryChangeWatcher.cpp" />
     <ClCompile Include="dllmain.cpp" />
