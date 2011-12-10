@@ -19,6 +19,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,DWORD  ul_reason_for_call, LPVOID lpReserv
 
 extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 	
+  LoadLibrary((NS2Env.GameStringPath/"sqlite3.dll").c_str());
+
 	LuaModule::Initialize(L);
 
 	using namespace luabind;

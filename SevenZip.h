@@ -16,7 +16,7 @@ struct IOutArchive;
 class CArcInfoEx{
 
 public:
-  CArcInfoEx() :FormatIndex(-1), UpdateEnabled(false){
+  CArcInfoEx() :FormatIndex(-1){
   }
 
   CArcInfoEx(int formatIndex);
@@ -24,37 +24,36 @@ public:
   IInArchive* GetInArchive() const;
   IOutArchive* GetOutArchive() const;
 
+  bool SupportsUpdatingArchives();
+  void GetExtensionList(vector<wstring>& extensions) const;
+
 public:
   string Name;
-
   uint32_t FormatIndex;
   GUID ClassID;
-  bool UpdateEnabled;
 
   vector<string> extensions;
-  string addExt;
 };
 
-
+class Archive;
 
 class SevenZip{
 
 public:
-	static SevenZip* Init(PlatformPath& LibaryPath);
+	static void Init(PlatformPath& LibaryPath, bool enableAllFormats = false );
 
-	SevenZip();
-	~SevenZip();
+  static bool IsLoaded();
 
 	static HRESULT ReadProp(uint32_t index, uint32_t propID, NWindows::NCOM::CPropVariant &prop);
 	static HRESULT ReadStringProp(uint32_t index, uint32_t propID, std::wstring &res);
   static HRESULT ReadUTF8StringProp(uint32_t index, uint32_t propID, std::string &res);
 	static HRESULT ReadBoolProp(uint32_t index, uint32_t propID, bool &res);
 
-  Archive* OpenArchive(const PlatformPath& ArchivePath);
-  std::vector<std::string> GetSupportedFormats();
+  static Archive* OpenArchive(const PlatformPath& ArchivePath);
+  static std::vector<std::string> GetSupportedFormats();
 
 private:
-	std::map<std::wstring, CArcInfoEx> ArchiveFormats;
-
-	bool LoadFormats();
+	static bool LoadFormats();
+  static bool FulllyLoaded;
+  static bool AllFormatsEnabled;
 };

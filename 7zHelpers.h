@@ -147,11 +147,11 @@ class SingleExtractCallback: public IArchiveExtractCallback,
 public:
   MY_UNKNOWN_IMP
 
-    SingleExtractCallback(int index, ISequentialOutStream *steam) : 
-  FileIndex(index), Stream(steam), Result(-1){
+  SingleExtractCallback(int index, ISequentialOutStream *stream) : 
+    FileIndex(index), Stream(stream), Result(-1){
 
-    steam->AddRef();
-    steam->AddRef();
+    stream->AddRef();
+    stream->AddRef();
 
     AddRef();
     AddRef();

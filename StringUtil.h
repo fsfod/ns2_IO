@@ -8,6 +8,8 @@
 static const wchar_t* InvalidPathChars = _T(":%|<>\"$");
 static const wchar_t* InvalidFileNameChars = _T("[]:%|<>\"'$/\\");
 
+static const char* InvalidFileNameCharsA = "[]:%|<>\"'$/\\";
+
 std::wstring AsciiToWString(const char* s, int len);
 
 //maybe switch to std::wstring_convert<std::codecvt_utf16<wchar_t> > to convert strings
@@ -40,3 +42,7 @@ std::string WStringToUTF8STLString(const std::wstring& wstr);
 //void InplaceNormalizePath(PathString& path);
 std::string NormalizedPath(const wchar_t* s);
 std::string NormalizedPath(const char* s, int len);
+
+static inline std::string NormalizePath(const std::string& s){
+  return NormalizedPath(s.c_str(), s.size());
+}

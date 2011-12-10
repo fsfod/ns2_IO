@@ -26,7 +26,7 @@ struct FileEntry{
 class Archive : public FileSource, SourceDirectory<FileEntry>{
 
 public:
-	Archive(SevenZip* owner, PathString archivepath, IInArchive* Reader);
+	Archive(PathString archivepath, IInArchive* Reader);
 	virtual ~Archive();
 
 	bool FileExists(const PathStringArg& path);
@@ -49,7 +49,7 @@ public:
 
   const PlatformPath& GetArchivePath(){return ArchivePath;}
 
-	static luabind::scope RegisterClass();
+	//static luabind::scope RegisterClass();
   
   void ExtractFile(uint32_t FileIndex, const PlatformPath& FilePath);
   void* ExtractFileToMemory(uint32_t FileIndex);

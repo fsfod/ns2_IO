@@ -23,8 +23,6 @@
 using namespace  std;
 
 
-SevenZip* SevenZipLib = NULL;
-
 //LuaModule::LuaModule(){
 
 DirectoryFileSource* LuaModule::ModDirectory = NULL;
@@ -134,21 +132,19 @@ void LuaModule::StaticInit(lua_State* L){
 
   FirstLoad = false;
 
-  auto SevenZipPath = (NS2Env.HasValidGameArg() ? NS2Env.NSRootPath : NS2Env.GameStringPath) /"7z.dll";
+  auto SevenZipPath = (NS2Env.HasValidGameArg() ? NS2Env.GameStringPath : NS2Env.NSRootPath) /"7z.dll";
 
   if(boostfs::exists(SevenZipPath)){
     try{
-      SevenZipLib = SevenZip::Init(SevenZipPath);
+      SevenZip::Init(SevenZipPath);
     }catch(exception e){
 
       string msg = "error while loading 7zip library: ";
       msg += e.what();
       PrintMessage(L, msg.c_str());
-
-      SevenZipLib = NULL;
     }
 
-    if(SevenZipLib != NULL && NS2Env.GameIsZip){
+    if(SevenZip::IsLoaded() && NS2Env.GameIsZip){
       try{
         RootDirs.push_back(SourceManager::OpenArchive(NS2Env.GameStringPath));
       }catch(exception e){
@@ -162,7 +158,7 @@ void LuaModule::StaticInit(lua_State* L){
   }
 
   if(NS2Env.GameIsZip){
-   if(SevenZipLib == NULL) PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
+   if(SevenZip::IsLoaded()) PrintMessage(L, "cannot open archive set with -game when 7zip is not loaded");
   }else{
     if(!NS2Env.GameStringPath.empty()){
       ModDirectory = new DirectoryFileSource(NS2Env.GameStringPath, "");
@@ -366,7 +362,7 @@ boost::shared_ptr<FileSource> LuaModule::OpenArchive2(lua_State* L, const PathSt
 
 boost::shared_ptr<FileSource> LuaModule::OpenArchive(lua_State* L, FileSource* ContainingSource, const PathStringArg& Path){
 
-	if(SevenZipLib == NULL){
+	if(!SevenZip::IsLoaded()){
 		throw exception("Cannot open archive because the 7zip library is not loaded");
 	}
 
@@ -402,7 +398,7 @@ boost::shared_ptr<FileSource> LuaModule::OpenArchive(lua_State* L, FileSource* C
 
 luabind::object LuaModule::GetSupportedArchiveFormats(lua_State *L) {
 
-  auto formats = SevenZipLib->GetSupportedFormats();
+  auto formats = SevenZip::GetSupportedFormats();
 
   lua_createtable(L, 0, RootDirs.size()*2);
   luabind::object table = luabind::object(luabind::from_stack(L,-1));

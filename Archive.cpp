@@ -17,7 +17,7 @@
 //using namespace std;
 using namespace boost::iostreams;
 
-Archive::Archive(SevenZip* owner, PathString archivepath, IInArchive* reader) : MountedFileCount(0), LuaPointer(){
+Archive::Archive(PathString archivepath, IInArchive* reader) : MountedFileCount(0), LuaPointer(){
 
 	Reader = reader;
 	ArchivePath = archivepath;
@@ -159,6 +159,7 @@ int Archive::FindFiles(const PathStringArg& SearchPath, const PathStringArg& Nam
 	string patten = NamePatten.ToString();
 
   BOOST_FOREACH(const FileNode& file, dir->Files){
+    //FIXME replace PathMatchSpec with something better
 		if(patten.empty() || PathMatchSpecExA(file.first.c_str(), patten.c_str(), PMSF_NORMAL) == S_OK){
 			FoundFiles[file.first] = static_cast<FileSource*>(this);
 			count++;

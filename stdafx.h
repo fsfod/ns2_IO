@@ -73,6 +73,7 @@
 #include <shlwapi.h>
 
 extern "C" {
+  #include "lua.h"
 	#include "lauxlib.h"
 }
 
@@ -123,6 +124,8 @@ using boost::replace;
 typedef PathString::value_type PathChar;
 typedef std::wstring PlatformString;
 
+
+#include "NS2Environment.h"
 
 #include "PathStringArg.h"
 

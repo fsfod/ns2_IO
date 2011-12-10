@@ -7,9 +7,10 @@
 #include "7zip/CPP/Common/MyCom.h"
 #include "7zip/CPP/7zip/Archive/IArchive.h"
 #include "7zip/CPP/7zip/Common/FileStreams.h"
-#include "7ZipFormatInfo.h"
+
 
 #include <unordered_set>
+#include <boost/algorithm/string/split.hpp>
 
 using NWindows::NCOM::CPropVariant;
 
@@ -29,27 +30,23 @@ GetHandlerPropertyFunc2 GetHandlerProperty2;
 CreateObjectFunc CreateObject;
 
 
-SevenZip::SevenZip(){
-	LoadFormats();
-}
+std::map<std::wstring, CArcInfoEx*> ArchiveFormats;
 
 //using namespace std;
 namespace boostfs = boost::filesystem ;
 
 
-static const wchar_t* Extensions[] = {_T(".zip"), _T(".7z"), _T(".rar")};
 
-std::unordered_set<wstring> ValidExtensions(0);
 
-SevenZip* SevenZip::Init( PlatformPath& LibaryPath ){
+bool SevenZip::FulllyLoaded = false;
+bool SevenZip::AllFormatsEnabled = false;
 
-	BOOST_FOREACH(const wchar_t* s, Extensions){
-		ValidExtensions.insert(wstring(s));
-	}
+void SevenZip::Init( PlatformPath& LibaryPath, bool enableAllFormat){
 
 	HMODULE LibaryHandle = LoadLibrary(LibaryPath.c_str());
 
 	if(LibaryHandle == NULL)throw std::exception("Failed to load 7zip library");
+
 
   GetMethodProperty = (GetMethodPropertyFunc)GetProcAddress(LibaryHandle, "GetMethodProperty");
   GetNumberOfMethods = (GetNumberOfMethodsFunc)GetProcAddress(LibaryHandle, "GetNumberOfMethods");
@@ -58,13 +55,16 @@ SevenZip* SevenZip::Init( PlatformPath& LibaryPath ){
   GetHandlerProperty2 = (GetHandlerPropertyFunc2)GetProcAddress(LibaryHandle, "GetHandlerProperty2");
   CreateObject = (CreateObjectFunc)GetProcAddress(LibaryHandle, "CreateObject");
 
+  AllFormatsEnabled = enableAllFormat;
 
-	return new SevenZip();
+  if(!LoadFormats()){
+    throw exception("Failed to load 7zip format list");
+  }
+
+  FulllyLoaded = true;
+
+	return;
 }
-
-SevenZip::~SevenZip(void){
-}
-
 
 bool SevenZip::LoadFormats(){
 
@@ -78,13 +78,29 @@ bool SevenZip::LoadFormats(){
 
   NWindows::NCOM::CPropVariant prop;
 
-  for(int i = 0; i != numFormats ;i++){
-    wstring extensions;
+  vector<wstring> extensions;
 
-    if(SevenZip::ReadStringProp(i, NArchive::kExtension, extensions) != S_OK)continue;
-    
-    if(ValidExtensions.find(L'.'+extensions) != ValidExtensions.end()){
-      ArchiveFormats[extensions] = CArcInfoEx(i);
+  for(int i = 0; i != numFormats ;i++){
+    wstring name;
+
+    if(SevenZip::ReadStringProp(i, NArchive::kName, name) != S_OK)continue;
+
+    if(AllFormatsEnabled){
+      boost::to_lower(name);
+      auto entry = new CArcInfoEx(i);
+
+      entry->GetExtensionList(extensions);
+
+      BOOST_FOREACH(const wstring& ext, extensions){
+        ArchiveFormats[ext] = entry;
+      }
+
+      extensions.clear();
+    }else if(name == L"7z" || name == L"Rar" || name == L"zip"){
+
+      boost::to_lower(name);
+
+      ArchiveFormats[L'.'+name] = new CArcInfoEx(i);
     }
     
   }
@@ -146,9 +162,9 @@ Archive* SevenZip::OpenArchive(const PlatformPath& ArchivePath){
 		throw exception("Unknown archive file extension");
 	}
 
-	const CArcInfoEx& format = (*reader).second;
+	const CArcInfoEx* format = (*reader).second;
 
-	IInArchive* archive = format.GetInArchive();
+	IInArchive* archive = format->GetInArchive();
 
 	CInFileStream* inStream = new CInFileStream();
 	 
@@ -167,7 +183,7 @@ Archive* SevenZip::OpenArchive(const PlatformPath& ArchivePath){
 		throw exception("Archive is either corrupt or 7zip was unable parse the archive header");
 	}
 
-	return new Archive(this, ArchivePath.string(), archive);
+	return new Archive(ArchivePath.string(), archive);
 
 }
 
@@ -226,8 +242,12 @@ HRESULT SevenZip::ReadBoolProp(uint32_t index, uint32_t propID, bool &res){
 	return S_OK;
 }
 
+bool SevenZip::IsLoaded(){
+  return FulllyLoaded;
+}
+
 CArcInfoEx::CArcInfoEx(int formatIndex) 
-  :FormatIndex(formatIndex), UpdateEnabled(false) {
+  :FormatIndex(formatIndex){
 
   CPropVariant prop;
 
@@ -240,10 +260,6 @@ CArcInfoEx::CArcInfoEx(int formatIndex)
   string extensions;
 
   if(SevenZip::ReadUTF8StringProp(formatIndex, NArchive::kExtension, extensions) != S_OK)return;
-
-  SevenZip::ReadUTF8StringProp(formatIndex, NArchive::kAddExtension, addExt);
-
-  SevenZip::ReadBoolProp(formatIndex, NArchive::kUpdate, UpdateEnabled);
 }
 
 IInArchive* CArcInfoEx::GetInArchive() const{
@@ -266,4 +282,29 @@ IOutArchive* CArcInfoEx::GetOutArchive() const{
   }
 
   return outArc;
+}
+
+void CArcInfoEx::GetExtensionList( vector<wstring>& extensions ) const
+{
+  wstring extString;
+
+  using namespace boost::algorithm;
+
+  if(SevenZip::ReadStringProp(FormatIndex, NArchive::kExtension, extString) != S_OK)return;
+
+  if(extString.find(' ') == string::npos){
+    extensions.push_back(extString);
+  }else{
+    split(extensions, extString, [](const wchar_t& c){ return c == ' ';});
+  }
+}
+
+
+bool CArcInfoEx::SupportsUpdatingArchives(){
+
+  bool result = false;
+
+  if(SevenZip::ReadBoolProp(FormatIndex, NArchive::kUpdate, result) != S_OK )return false;
+
+  return result;
 }

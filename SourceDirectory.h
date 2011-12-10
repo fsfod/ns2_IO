@@ -8,8 +8,8 @@ typedef typename std::string StringType;
 
 public:
 	typedef typename SourceDirectory<FileRecord> SelfType;
-	typedef typename std::hash_map<StringType, FileRecord>::value_type FileNode;
-	typedef typename std::hash_map<StringType, SelfType>::value_type DirNode;
+	typedef typename std::unordered_map<StringType, FileRecord>::value_type FileNode;
+	typedef typename std::unordered_map<StringType, SelfType>::value_type DirNode;
 
 	SourceDirectory():Parent(NULL){}
 
@@ -99,6 +99,6 @@ public:
 public:
 	SelfType* Parent;
 	StringType Name;
-	std::hash_map<StringType, FileRecord> Files;
-	std::hash_map<StringType, SelfType> Directorys;
+	std::unordered_map<StringType, FileRecord> Files;
+	std::unordered_map<StringType, SelfType> Directorys;
 };
