@@ -3,7 +3,7 @@
 #include "SQLite3Database.h"
 #include "SQLTableSerializer.h"
 #include "SQLTableMetaData.h"
-#include "SavedVariables.h"
+#include "SQLSavedVariables.h"
 #include "EngineInterfaces.h"
 
 struct TableKeyType{
@@ -59,7 +59,7 @@ bool ValidFieldName(const string& name){
 
 //"CREATE TABLE IF NOT EXISTS [%s] (tablename TEXT PRIMARY KEY, DataVersion INTEGER, INTEGER, KeyType INTEGER, columncount INTEGER, fieldlist STRING)";
 
-SQLTableSerializer::SQLTableSerializer(lua_State* L, const char* tableName, int infoTableIndex, SavedVariables* sv) 
+SQLTableSerializer::SQLTableSerializer(lua_State* L, const char* tableName, int infoTableIndex, SQLSavedVariables* sv) 
   : TableName(tableName), IsHashTableChecked(false) , SV(sv), DB(sv->db){
 
   lua_pushvalue(L, infoTableIndex);

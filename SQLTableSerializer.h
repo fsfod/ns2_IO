@@ -4,13 +4,13 @@
 
 class SQLiteDatabase;
 class SQLitePreparedStatment;
-class SavedVariables;
+class SQLSavedVariables;
 class SQLTableMetaData;
 
 class SQLTableSerializer{
 
 public:
-  SQLTableSerializer(lua_State* L, const char* tableName, int infoTableIndex, SavedVariables* sv);
+  SQLTableSerializer(lua_State* L, const char* tableName, int infoTableIndex, SQLSavedVariables* sv);
   ~SQLTableSerializer();
   
   void Save(lua_State *L);
@@ -36,7 +36,7 @@ private:
 
   inline bool ReadSqlValue(lua_State *L, SQLitePreparedStatment& statement, int column, int columType);
 
-  SavedVariables* SV;
+  SQLSavedVariables* SV;
 
   SQLiteDatabase* DB;
   string TableName;
