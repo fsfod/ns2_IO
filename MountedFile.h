@@ -56,7 +56,7 @@ public:
   }
 
   //we can't just return ourselves because the engine deletes the file object
-  M4::File* MakeEngineFileObj();
+  M4::File* MakeEngineFileObj(M4::Allocator* alc);
 
   bool IsInArchive() const{
     return FileIndex != -1;

@@ -67,17 +67,14 @@ public:
 
   shared_ptr<FileSource> GetLuaPointer();
 
-  M4::File* GetEngineFile(const string& path, M4::Allocator* alc);
+  
 
   virtual bool FileExist(const string& path){
     return PathToFile.find(path) != PathToFile.end();
   }
 
-  M4::File* GetEngineFile(int FileIndex){
-    if(FileIndex < 0)throw std::exception("GetEngineFile: Invalid File index");
-
-    return new ArchiveFile(this, FileIndex);
-  }
+  M4::File* GetEngineFile(M4::Allocator* alc, int FileIndex);
+  M4::File* GetEngineFile(M4::Allocator* alc, const string& path);
 
   uint32_t GetFileCRC(int FileIndex);
   uint32_t GetFileSize(int index);

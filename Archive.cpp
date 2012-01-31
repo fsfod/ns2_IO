@@ -371,10 +371,17 @@ void Archive::CreateMountList(const std::string& BasePath, const std::string& pa
 
 }
 
-M4::File* Archive::GetEngineFile(const string& path, M4::Allocator* alc ){
+M4::File* Archive::GetEngineFile(M4::Allocator* alc, const string& path){
   int FileIndex = GetFileIndex(path);
 
   if(FileIndex == -1)return NULL;
+
+  return new (alc->AllocateAligned(sizeof(ArchiveFile), 4)) ArchiveFile(this, FileIndex);
+}
+
+M4::File* Archive::GetEngineFile(M4::Allocator* alc, int FileIndex){
+
+  if(FileIndex < 0)throw std::exception("GetEngineFile: Invalid File index");
 
   return new (alc->AllocateAligned(sizeof(ArchiveFile), 4)) ArchiveFile(this, FileIndex);
 }

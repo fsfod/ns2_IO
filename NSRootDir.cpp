@@ -277,7 +277,7 @@ void DirectoryFileSource::MountFiles(const PathStringArg& BasePath, const PathSt
   ForEachFile(BasePath.ToString(),  foreachFunc);
 }
 
-M4::File* DirectoryFileSource::GetEngineFile( const string& path, M4::Allocator* alc )
+M4::File* DirectoryFileSource::GetEngineFile( M4::Allocator* alc, const string& path )
 {
   PlatformPath fullpath = RealPath/path;
 

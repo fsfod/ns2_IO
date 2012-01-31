@@ -24,7 +24,7 @@ public:
   virtual void MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath) = 0;
   
   //both these must be passed normalized paths
-  virtual M4::File* GetEngineFile(const string& path, M4::Allocator* alc) = 0;
+  virtual M4::File* GetEngineFile(M4::Allocator* alc, const string& path) = 0;
   virtual bool FileExist(const string& path) = 0;
   virtual int64_t GetFileModificationTime(const string& path) = 0;
   virtual void GetChangedFiles( VC05Vector<VC05string>& ChangedFiles ){

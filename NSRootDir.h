@@ -40,7 +40,7 @@ public:
   virtual bool FileExist(const string& path);
   virtual int64_t GetFileModificationTime(const string& path);
   virtual void GetChangedFiles(VC05Vector<VC05string>& changes);
-  virtual M4::File* GetEngineFile(const string& path, M4::Allocator* alc);
+  virtual M4::File* GetEngineFile(M4::Allocator* alc, const string& path);
 
   PlatformPath MakePlatformPath(std::string path) const{
     return RealPath/path;

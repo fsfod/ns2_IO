@@ -24,13 +24,15 @@ uint32_t MountedFile::GetLength(){
   }
 }
 
-M4::File* MountedFile::MakeEngineFileObj(){
+M4::File* MountedFile::MakeEngineFileObj(M4::Allocator* alc){
+
   if(IsInArchive()){
-    return static_cast<Archive*>(ContainingSource)->GetEngineFile(FileIndex);
+    return static_cast<Archive*>(ContainingSource)->GetEngineFile(alc, FileIndex);
   }else{
     // static_cast<DirectoryFileSource*>(ContainingSource)->GetEngineFile();
 
-    return new DirEngineFile(OverriderFile);
+
+    return new(alc) DirEngineFile(OverriderFile);
   }
 }
 
