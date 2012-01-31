@@ -42,6 +42,11 @@ public:
   virtual void MountFile(const PathStringArg& FilePath, const PathStringArg& DestinationPath);
   virtual void MountFiles(const PathStringArg& BasePath, const PathStringArg& DestinationPath);
 
+  void GetFileList1(lua_State* L);
+  void GetFileList2(lua_State* L, const string& BasePath, const string& namePatten );
+  void LoadFileToString(lua_State* L, const PathStringArg& FilePath);
+  static void RegisterClass(lua_State* L);
+
 	// Called directly by Lua
 	int LoadLuaFile(lua_State* L, const PathStringArg& FilePath);
 
@@ -96,6 +101,7 @@ public:
 private:
 	void AddFilesToDirectorys();
 	SelfType* CreateDirectorysForPath(const std::string& path, std::vector<int>& SlashIndexs);
+
 
   PlatformPath ArchivePath;
 

@@ -72,6 +72,8 @@
 #include <Windows.h>
 #include <shlwapi.h>
 
+#undef RegisterClass
+
 extern "C" {
   #include "lua.h"
 	#include "lauxlib.h"

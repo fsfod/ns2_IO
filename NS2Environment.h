@@ -1,19 +1,13 @@
 #pragma once
 #include "stdafx.h"
 
+
 class NS2Environment{
 public:
-  NS2Environment() : GameIsZip(false), IsDedicatedServer(false){
-    FindNSRoot();
-    ProcessCommandline();
-  }
+  NS2Environment();
+  ~NS2Environment();
 
-  ~NS2Environment(){
-  }
-
-  bool HasValidGameArg(){
-    return !GameStringPath.empty();
-  }
+  bool HasValidGameArg();
 
 public:
   PlatformPath NSRootPath, GameStringPath;

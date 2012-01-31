@@ -1,7 +1,16 @@
 #include "StdAfx.h"
 #include "NS2Environment.h"
+#include "StringUtil.h"
 
 NS2Environment NS2Env;
+
+NS2Environment::NS2Environment() : GameIsZip(false), IsDedicatedServer(false){
+  FindNSRoot();
+  ProcessCommandline();
+}
+
+NS2Environment::~NS2Environment(){
+}
 
 void NS2Environment::FindNSRoot(){
   HMODULE hmodule = GetModuleHandleW(NULL);
@@ -117,4 +126,8 @@ void NS2Environment::ParseGameCommandline(PlatformString& CommandLine ){
       GameIsZip = true;
     }
   }
+}
+
+bool NS2Environment::HasValidGameArg(){
+  return !GameStringPath.empty();
 }

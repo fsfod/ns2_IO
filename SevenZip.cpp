@@ -43,10 +43,12 @@ bool SevenZip::AllFormatsEnabled = false;
 
 void SevenZip::Init( PlatformPath& LibaryPath, bool enableAllFormat){
 
+  if(FulllyLoaded)return;
+  
+
 	HMODULE LibaryHandle = LoadLibrary(LibaryPath.c_str());
 
-	if(LibaryHandle == NULL)throw std::exception("Failed to load 7zip library");
-
+	if(LibaryHandle == NULL)return;
 
   GetMethodProperty = (GetMethodPropertyFunc)GetProcAddress(LibaryHandle, "GetMethodProperty");
   GetNumberOfMethods = (GetNumberOfMethodsFunc)GetProcAddress(LibaryHandle, "GetNumberOfMethods");
@@ -58,7 +60,8 @@ void SevenZip::Init( PlatformPath& LibaryPath, bool enableAllFormat){
   AllFormatsEnabled = enableAllFormat;
 
   if(!LoadFormats()){
-    throw exception("Failed to load 7zip format list");
+    //throw exception("Failed to load 7zip format list");
+    return;
   }
 
   FulllyLoaded = true;

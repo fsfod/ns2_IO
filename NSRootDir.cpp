@@ -1,6 +1,6 @@
 #include "StdAfx.h"
 #include "NSRootDir.h"
-#include "NS_IOModule.h"
+#include "LuaModule.h"
 #include "StringUtil.h"
 #include "SourceManager.h"
 #include "DirectoryChangeWatcher.h"
@@ -312,7 +312,7 @@ std::int64_t DirectoryFileSource::GetFileModificationTime(const string& path){
 
 void DirectoryFileSource::GetChangedFiles( VC05Vector<VC05string>& changes ){
   //just let the parent collect changes
-  if(ParentSource != NULL)return;
+  //if(ParentSource != NULL)return;
 
   if(ChangeWatcher == NULL){
     ChangeWatcher = new DirectoryChangeWatcher(RealPath);

@@ -32,7 +32,7 @@ public:
 
   M4::File* GetEngineFile(const string& path, M4::Allocator* alc ){
     BOOST_FOREACH(::FileSource* source, SourceList){
-      M4::File* file = source->GetEngineFile(path,  alc);
+      M4::File* file = source->GetEngineFile(alc, path);
 
       if(file != NULL){
         return file;

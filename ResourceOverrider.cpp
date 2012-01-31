@@ -16,7 +16,7 @@ M4::File* ResourceOverrider::OpenFile(M4::Allocator* alc, const VC05string& path
     return GetEngineFile(NormPath, alc);
   }
   
-  return result->second.MakeEngineFileObj();
+  return result->second.MakeEngineFileObj(alc);
 }
 
 bool ResourceOverrider::GetFileExists(const VC05string& path){

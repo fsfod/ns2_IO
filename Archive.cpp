@@ -333,6 +333,45 @@ uint32_t Archive::GetFileCRC( int FileIndex ){
   return CRCResult.ulVal;
 }
 
+void Archive::GetFileList1(lua_State* L){
+  GetFileList2(L, string(), string());
+}
+
+void Archive::GetFileList2( lua_State* L, const string& BasePath, const string& namePatten ){
+
+  string normpath = NormalizePath(BasePath);
+
+  bool MatchAll = normpath.empty() || normpath == "*";
+
+  int count = 0;
+
+  lua_createtable(L, 20, 0);
+
+  int basePathSize = normpath.size();
+
+  BOOST_FOREACH(const FileNode& file, PathToFile){
+    //FIXME replace PathMatchSpec with something better
+
+    if(MatchAll || normpath.compare(0, normpath.size(), file.first, 0, normpath.size()) == 0){
+
+      if(!namePatten.empty()){
+        int slashIndex = file.first.find_last_of('/');
+
+        if(slashIndex == string::npos)slashIndex = 0;
+
+        if(PathMatchSpecA(file.first.c_str()+slashIndex , namePatten.c_str()) != TRUE){
+          continue;
+        }
+      }
+
+      lua_pushstring(L, file.first.c_str());
+      lua_rawseti(L, -2, ++count);
+    }
+  }
+
+  return;
+}
+
 extern ResourceOverrider* OverrideSource;
 
 void Archive::MountFile(const PathStringArg& FilePath, const PathStringArg& DestinationPath){
@@ -361,11 +400,15 @@ void Archive::CreateMountList(const std::string& BasePath, const std::string& pa
 
   if(pathStart != 0 && BasePath.back() != '/' && BasePath.back() != '\\')pathStart++;
 
+  const string& pathFront = path.size() != 0 && path.back() != '/' && path.back() != '\\' ? path+'/': path;
+  
+
   BOOST_FOREACH(const FileNode& file, PathToFile){
     const string& destpath = pathStart != 0 ? file.first.substr(pathStart)  : file.first;
 
-    if(BasePath.empty() || file.first.compare(0, BasePath.size(),BasePath.c_str()) == 0){
-      fileList.push_back(pair<string, int>(path.empty() ? destpath  : path+destpath, file.second.FileIndex));
+    if(BasePath.empty() || file.first.compare(0, BasePath.size(), BasePath.c_str()) == 0){
+
+      fileList.push_back(pair<string, int>(path.empty() ? destpath  : pathFront+destpath, file.second.FileIndex));
     }
   }
 
@@ -400,4 +443,35 @@ void Archive::CheckDelete(){
     SourceManager::ArchiveClosed(this);
    delete this;
   }
+}
+
+void Archive::LoadFileToString(lua_State* L, const PathStringArg& FilePath){
+
+  auto file = PathToFile.find(FilePath.GetNormalizedPath());
+
+  if(file == PathToFile.end()){
+    throw exception("cannot load a file that does not exist");
+  }
+
+  uint32_t index = file->second.FileIndex;
+
+  int size = GetFileSize(file->second.FileIndex);
+
+  char* data =  (char*)ExtractFileToMemory(index);
+
+  lua_pushlstring(L, data, size);
+
+  delete data;
+
+  return;
+}
+
+void Archive::RegisterClass(lua_State* L){
+  using namespace luabind;
+
+  module(L)[class_<Archive, FileSource>("ArchiveFileSource")
+    .def("GetFileList", &Archive::GetFileList1)
+    .def("GetFileList", &Archive::GetFileList2)
+    .def("LoadFileToString", &Archive::LoadFileToString)
+  ];
 }

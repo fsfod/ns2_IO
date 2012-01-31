@@ -14,7 +14,7 @@ void VC05string::Init(const char* s, size_t len){
     buffptr = dest = (char*)VC2005RunTime::NewOperator(len+1);
   }
 
-  if(length > 0){
+  if(len > 0){
     memcpy(dest, s, len);
 
     dest[len] = 0;

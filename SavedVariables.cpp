@@ -1,7 +1,9 @@
 #include "StdAfx.h"
 #include "SavedVariables.h"
-#include "NS_IOModule.h"
 #include "StringUtil.h"
+#include "LuaModule.h"
+#include "NS2Environment.h"
+#include <shlobj.h>
 
 namespace boostfs = boost::filesystem;
 
@@ -441,9 +443,13 @@ bool SavedVariables::SerializeCustomType(lua_State *L, int index){
 
 void SavedVariables::CheckCreateSVDir(){
 
-	if(!boostfs::exists(SavedVariablesFolderPath.c_str())){
-		boostfs::create_directory(SavedVariablesFolderPath);
+	if(!boostfs::exists(SavedVariablesFolderPath)){
+   
+    if(!boostfs::create_directory(SavedVariablesFolderPath)){
+      throw exception("Failed to created SavedVariables directory");
+    }
 	}
+
 }
 
 void SavedVariables::SetExitAutoSaving(bool AutoSave){
@@ -452,7 +458,8 @@ void SavedVariables::SetExitAutoSaving(bool AutoSave){
 
 
 void SavedVariables::RegisterObjects(lua_State *L){
-	
+	 
+
 	using namespace luabind;
 
 	module(L)[class_<SavedVariables>("SavedVariables")
@@ -469,5 +476,15 @@ void SavedVariables::RegisterObjects(lua_State *L){
 	lua_pop(L, 1);
 	*/
 
-	SavedVariablesFolderPath = NS2Env.NSRootPath/"SavedVariables/";
+  if(SavedVariablesFolderPath.empty() ){
+    wchar_t pathbuf[MAX_PATH];
+
+    if(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, pathbuf))){
+
+      SavedVariablesFolderPath = PlatformPath(pathbuf)/"Natural Selection 2/SavedVariables/";
+
+    }else{
+      throw exception("Failed to get the Natural Selection 2 appdata path");
+    }
+  }
 }

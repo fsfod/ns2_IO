@@ -1,7 +1,7 @@
 //NS2_IO by fsfod
 
 #include "stdafx.h"
-#include "NS_IOModule.h"
+#include "LuaModule.h"
 #include "StringUtil.h"
 #include "SevenZip.h"
 #include "PathStringConverter.h"

@@ -20,6 +20,11 @@ bool FileSource::Lua_FileExists(const PathStringArg& path){
 	return this->FileExists(path);
 }
 
+bool FileSource::Lua_DirectoryExists(const PathStringArg& path){
+  ConvertAndValidatePath(path);
+  return this->DirectoryExists(path);
+}
+
 double FileSource::Lua_FileSize( const PathStringArg& path ){
 	double size = 0;
 
@@ -87,6 +92,7 @@ luabind::scope FileSource::RegisterClass(){
 	return luabind::class_<FileSource, shared_ptr<FileSource>>("FileSource")
 		//.def_readonly("Path", &FileSource::Lua_get_Path)
 		.def("FileExists", &FileSource::Lua_FileExists)
+    .def("DirectoryExists", &FileSource::Lua_FileExists)
 		.def("FileSize", &FileSource::Lua_FileSize)
 		.def("DateModifed", &FileSource::Lua_GetModifedTime)
 		.def("FindDirectorys", &FileSource::Lua_FindDirectorys)

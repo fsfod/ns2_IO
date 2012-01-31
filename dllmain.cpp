@@ -1,6 +1,6 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "stdafx.h"
-#include "NS_IOModule.h"
+#include "LuaModule.h"
 #include "SavedVariables.h"
 #include <luabind/tag_function.hpp>
 #include <luabind/adopt_policy.hpp>
@@ -53,11 +53,13 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
 		
 		FileSource::RegisterClass(),
     class_<DirectoryFileSource, FileSource>("DirectoryFileSource")
-    .def("CreateChildSource", &DirectoryFileSource::CreateChildSource),
+    .def("CreateChildSource", &DirectoryFileSource::CreateChildSource)
 
-    class_<Archive, FileSource>("ArchiveFileSource")
+    
 		//class_<NSRootDir, bases<FileSource> >("RootDirectory")
 	];
+  
+  Archive::RegisterClass(L);
 
 	SavedVariables::RegisterObjects(L);
 

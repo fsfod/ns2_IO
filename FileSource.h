@@ -37,9 +37,10 @@ public:
 private:
 	int32_t Lua_GetModifedTime(const PathStringArg& Path);
 	bool Lua_FileExists(const PathStringArg& path);
+  bool Lua_DirectoryExists(const PathStringArg& path);
+
 	double Lua_FileSize(const PathStringArg& Path);
 	luabind::object Lua_FindDirectorys(lua_State *L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
 	luabind::object Lua_FindFiles(lua_State* L, const PathStringArg& SearchPath, const PathStringArg& NamePatten);
 	void Lua_LoadLuaFile(lua_State *L, const PathStringArg& path);
-  
 };

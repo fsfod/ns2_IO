@@ -155,7 +155,7 @@ copy "$(TargetDir)$(TargetName).pdb" "$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Val
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="StringUtil.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="NS_IOModule.h" />
+    <ClInclude Include="LuaModule.h" />
     <ClInclude Include="VC2005Compat.h" />
   </ItemGroup>
   <ItemGroup>
