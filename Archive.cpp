@@ -290,7 +290,8 @@ void Archive::ExtractFile(uint32_t FileIndex, const PlatformPath& FilePath){
   extrackCb.CheckResult();
 }
 
-void* Archive::ExtractFileToMemory(uint32_t FileIndex){
+std::unique_ptr<char> Archive::ExtractFileToMemory( uint32_t FileIndex )
+{
 
   int size = GetFileSize(FileIndex);
 
@@ -457,11 +458,9 @@ void Archive::LoadFileToString(lua_State* L, const PathStringArg& FilePath){
 
   int size = GetFileSize(file->second.FileIndex);
 
-  char* data =  (char*)ExtractFileToMemory(index);
+  std::unique_ptr<char> data = ExtractFileToMemory(index);
 
-  lua_pushlstring(L, data, size);
-
-  delete data;
+  lua_pushlstring(L, data.get(), size);
 
   return;
 }

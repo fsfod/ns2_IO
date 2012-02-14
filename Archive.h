@@ -57,7 +57,7 @@ public:
 	//static luabind::scope RegisterClass();
   
   void ExtractFile(uint32_t FileIndex, const PlatformPath& FilePath);
-  void* ExtractFileToMemory(uint32_t FileIndex);
+  std::unique_ptr<char> ExtractFileToMemory(uint32_t FileIndex);
 
   int GetFileIndex(const std::string& path){
 
@@ -124,7 +124,7 @@ private:
         Owner->FileMounted(FileIndex);
       }
 
-      ArchiveFile(Archive* owner, int fileIndex, shared_ptr<char>& preloadData) : Owner(owner), FileIndex(fileIndex), Data(preloadData){
+      ArchiveFile(Archive* owner, int fileIndex, std::shared_ptr<char>& preloadData) : Owner(owner), FileIndex(fileIndex), Data(preloadData){
         Owner->FileMounted(FileIndex);
       }
 
@@ -141,7 +141,7 @@ private:
 
         if(Data == NULL){
           try{
-            Data.reset((char*)Owner->ExtractFileToMemory(FileIndex));
+            Data = Owner->ExtractFileToMemory(FileIndex);
           }catch (exception e){
             return NULL;
           }
@@ -159,7 +159,7 @@ private:
       }
 
     private:
-      shared_ptr<char> Data;
+      std::shared_ptr<char> Data;
       int FileIndex;
       Archive* Owner;
     };

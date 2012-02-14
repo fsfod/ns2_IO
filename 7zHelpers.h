@@ -7,6 +7,7 @@
 
 using namespace boost::filesystem;
 #include <boost/iostreams/stream.hpp>
+#include <memory>
 
 //using namespace std;
 using namespace boost::iostreams;
@@ -31,17 +32,18 @@ public:
     }
   }
 
-  void* TransferBufferOwnership(){
+  std::unique_ptr<char> TransferBufferOwnership(){
 
     if(buffer == NULL){
       throw exception("Cannot transfer a NULL buffer");
     }
 
-    void* ret = buffer;
+    char* ret = buffer;
+
     buffer = NULL;
     Size = Capacity = Position = 0;
 
-    return ret;
+    return std::unique_ptr<char>(ret);
   }
 
   STDMETHOD(Write)(const void *data, UInt32 dataSize, UInt32 *processedSize){
@@ -88,6 +90,12 @@ public:
   int LoadChunk(lua_State* L, const char* ChunkName){
     return luaL_loadbuffer(L, buffer, Position, ChunkName);
   }
+
+  uint32_t GetSize() 
+  {
+    throw std::exception("The method or operation is not implemented.");
+  }
+
 
 private:
   char* buffer;
