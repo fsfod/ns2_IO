@@ -6,9 +6,9 @@
 
 //using namespace std;
 
-M4::File* ResourceOverrider::OpenFile(M4::Allocator* alc, const VC05string& path, bool something){
+M4::File* ResourceOverrider::OpenFile( M4::Allocator* alc, const char* path, bool something ){
 
-  string NormPath = NormalizedPath(path.c_str(), path.size());
+  string NormPath = NormalizedPath(path);
 
   auto result = FileOverrides.find(NormPath);
   
@@ -19,8 +19,9 @@ M4::File* ResourceOverrider::OpenFile(M4::Allocator* alc, const VC05string& path
   return result->second.MakeEngineFileObj(alc);
 }
 
-bool ResourceOverrider::GetFileExists(const VC05string& path){
-  string NormPath = NormalizedPath(path.c_str(), path.size());
+bool ResourceOverrider::GetFileExists( const char* path )
+{
+  string NormPath = NormalizedPath(path);
 
   return FileOverrides.find(NormPath) != FileOverrides.end() || FileExists(NormPath);
 }
@@ -59,8 +60,8 @@ int ResourceOverrider::UnmountFilesFromSource(::FileSource* source){
   return count;
 }
 
-int64_t ResourceOverrider::GetFileModificationTime(const VC05string& path){
-  string NormPath = NormalizedPath(path.c_str(), path.size());
+int64_t ResourceOverrider::GetFileModificationTime(const char* path){
+  string NormPath = NormalizedPath(path);
 
   auto result = FileOverrides.find(NormPath);
 

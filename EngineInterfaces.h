@@ -22,7 +22,7 @@ namespace M4{
     virtual ~Allocator(){}
 
     virtual void* AllocateAligned(size_t size, int alignment) = 0;
-    virtual void Free(void* data);
+    virtual void Delete(void* data);
     virtual void ReallocateAligned(void *data, size_t size, int alignment) = 0;
     virtual size_t GetAllocationSize(void *data) = 0;
   };
@@ -40,20 +40,26 @@ namespace M4{
     virtual void Destroy(int deleteOptions) = 0;
   };
 
+  enum FileSourceFlags{
+    Game = 1,
+    Temp = 2,
+    User = 4,
+  };
+
   class FileSource{
    public:
     virtual void Destroy(int options) = 0;
   
-    virtual M4::File* OpenFile(M4::Allocator* alc, const VC05string& path, bool something) = 0;
-    virtual bool GetFileExists(const VC05string& path) = 0;
-    virtual int64_t GetFileModificationTime(const VC05string& path) = 0;
+    virtual M4::File* OpenFile(M4::Allocator* alc,  const char* path, bool something) = 0;
+    virtual bool GetFileExists(const char* path) = 0;
+    virtual int64_t GetFileModificationTime(const char* path) = 0;
 
     //these 2 are optional
     virtual void GetChangedFiles(VC05Vector<VC05string>& ChangeFiles){
       return;
     }
   
-    virtual void GetMatchingFileNames(const VC05string& path, bool something, std::vector<VC05string>& FoundFiles){
+    virtual void GetMatchingFileNames(const char* path, bool something, std::vector<VC05string>& FoundFiles){
       return;
     }
   

@@ -3,11 +3,10 @@
 
 extern void LogMessage(const char* msg);
 
-M4::File* SourceCollection::OpenFile( M4::Allocator* alc, const VC05string& path, bool something )
-{
+M4::File* SourceCollection::OpenFile(M4::Allocator* alc, const char* path, bool something){
 
   try{
-    string normpath = NormalizedPath(path.c_str(), path.size());
+    string normpath = NormalizedPath(path);
 
     return GetEngineFile(normpath, alc);
   }catch(exception e){
@@ -17,10 +16,11 @@ M4::File* SourceCollection::OpenFile( M4::Allocator* alc, const VC05string& path
   return NULL;
 }
 
-bool SourceCollection::GetFileExists( const VC05string& path ){
+bool SourceCollection::GetFileExists( const char* path )
+{
 
   try{
-    return FileExists(NormalizedPath(path.c_str(), path.size()));
+    return FileExists(NormalizedPath(path));
   }catch(exception e){
     LogMessage(e.what());
   }
@@ -28,9 +28,10 @@ bool SourceCollection::GetFileExists( const VC05string& path ){
   return false;
 }
 
-std::int64_t SourceCollection::GetFileModificationTime( const VC05string& path ){
+std::int64_t SourceCollection::GetFileModificationTime( const char* path )
+{
   try{
-    return GetFileModifiedTime(NormalizedPath(path.c_str(), path.size()));
+    return GetFileModifiedTime(NormalizedPath(path));
   }catch(exception e){
     LogMessage(e.what());
   }
