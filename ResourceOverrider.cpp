@@ -8,7 +8,7 @@
 
 M4::File* ResourceOverrider::OpenFile( M4::Allocator* alc, const char* path, bool something ){
 
-  string NormPath = NormalizedPath(path);
+  string NormPath = NormalizePath(path);
 
   auto result = FileOverrides.find(NormPath);
   
@@ -21,7 +21,7 @@ M4::File* ResourceOverrider::OpenFile( M4::Allocator* alc, const char* path, boo
 
 bool ResourceOverrider::GetFileExists( const char* path )
 {
-  string NormPath = NormalizedPath(path);
+  string NormPath = NormalizePath(path);
 
   return FileOverrides.find(NormPath) != FileOverrides.end() || FileExists(NormPath);
 }
@@ -61,7 +61,7 @@ int ResourceOverrider::UnmountFilesFromSource(::FileSource* source){
 }
 
 int64_t ResourceOverrider::GetFileModificationTime(const char* path){
-  string NormPath = NormalizedPath(path);
+  string NormPath = NormalizePath(path);
 
   auto result = FileOverrides.find(NormPath);
 

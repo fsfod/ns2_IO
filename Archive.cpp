@@ -21,6 +21,8 @@ Archive::Archive(PathString archivepath, IInArchive* reader) : MountedFileCount(
 
 	Reader = reader;
 	ArchivePath = archivepath;
+  NormalizedPath = NormalizePath(archivepath);
+
 	ArchiveName = ArchivePath.filename().string();
 
 	uint32_t itemcount;
@@ -32,8 +34,7 @@ Archive::Archive(PathString archivepath, IInArchive* reader) : MountedFileCount(
 		if(Reader->GetProperty(i, kpidIsDir, &prop) != S_OK || prop.vt != VT_BOOL || prop.boolVal)continue;
 
 		if(Reader->GetProperty(i, kpidPath, &prop) != S_OK || prop.vt != VT_BSTR)continue;
-		string& itempath = NormalizedPath(prop.bstrVal);
-
+		string& itempath = NormalizePath(prop.bstrVal);
 
 		PathToFile[itempath] = FileEntry(i);
 	}
@@ -473,4 +474,8 @@ void Archive::RegisterClass(lua_State* L){
     .def("GetFileList", &Archive::GetFileList2)
     .def("LoadFileToString", &Archive::LoadFileToString)
   ];
+}
+
+const PlatformPath& Archive::GetNormlizedFilePath(){
+  return NormalizedPath;
 }

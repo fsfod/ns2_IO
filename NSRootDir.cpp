@@ -15,6 +15,8 @@ DirectoryFileSource::DirectoryFileSource(char* dirName): ParentSource(NULL), Gam
 
 	RealPath = NS2Env.NSRootPath/dirName;
 
+  NormalizedPath = NormalizePath(RealPath.c_str());
+
 	if(GameFileSystemPath.back() != '/'){
 		GameFileSystemPath.push_back('/');
 	}
@@ -22,6 +24,8 @@ DirectoryFileSource::DirectoryFileSource(char* dirName): ParentSource(NULL), Gam
 
 DirectoryFileSource::DirectoryFileSource(const PlatformPath& DirectoryPath, const PathString& GamePath, DirectoryFileSource* parentSource)
  :GameFileSystemPath(GamePath), RealPath(DirectoryPath), ParentSource(parentSource), ChangeWatcher(NULL){
+
+  NormalizedPath = NormalizePath(RealPath.c_str());
 
  if(!GameFileSystemPath.empty() && GameFileSystemPath.back() != '/'){
 	 GameFileSystemPath.push_back('/');
@@ -334,4 +338,8 @@ void DirectoryFileSource::GetChangedFiles( VC05Vector<VC05string>& changes ){
 
 bool DirectoryFileSource::FileExist(const string& path){
   return boostfs::exists(RealPath/path);
+}
+
+const PlatformPath& DirectoryFileSource::GetNormlizedFilePath(){
+  return NormalizedPath;
 }

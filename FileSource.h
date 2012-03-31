@@ -30,6 +30,8 @@ public:
   virtual void GetChangedFiles( VC05Vector<VC05string>& ChangedFiles ){
   }
 
+  virtual const PlatformPath& GetNormlizedFilePath() = 0;
+
 	virtual const std::string& get_Path() = 0;
 
 	static luabind::scope RegisterClass();

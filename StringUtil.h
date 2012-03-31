@@ -18,7 +18,14 @@ std::wstring AsciiToWString(const char* s, int len);
 //std::codecvt<wchar_t, char, std::mbstate_t> ft;
 
 void UTF8StringToWString(const std::string& stlstr, std::wstring& StringResult);
-std::wstring UTF8StringToWString(const std::string& stlstr);
+//std::wstring UTF8StringToWString(const std::string& stlstr);
+
+static inline std::wstring UTF8StringToWString(const std::string& stlstr){
+  wstring result;
+  UTF8StringToWString(stlstr, result);
+  return result;
+}
+
 void UTF8ToWString(const char* String, std::wstring& StringResult);
 void UTF8ToWString(const char* String, int slength, std::wstring& StringResult);
 
@@ -40,9 +47,13 @@ std::string WStringToUTF8STLString(const std::wstring& wstr);
 
 //void CheckPathString(const PathString& path);
 //void InplaceNormalizePath(PathString& path);
-std::string NormalizedPath(const wchar_t* s);
-std::string NormalizedPath(const char* s, int len);
+std::string NormalizePath(const wchar_t* s);
+std::string NormalizePath(const char* s, int len);
+
+static inline std::string NormalizePath(const char* s){
+  return NormalizePath(s, strlen(s));
+}
 
 static inline std::string NormalizePath(const std::string& s){
-  return NormalizedPath(s.c_str(), s.size());
+  return NormalizePath(s.c_str(), s.size());
 }

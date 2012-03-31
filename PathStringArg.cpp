@@ -9,7 +9,7 @@ PathStringArg::~PathStringArg(void){
 
 //Normalized
 string PathStringArg::GetNormalizedPath() const{
-	return NormalizedPath(s, len);
+	return NormalizePath(s, len);
 }
 
 string PathStringArg::GetExtension() const{

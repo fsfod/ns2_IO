@@ -42,6 +42,8 @@ public:
   virtual void GetChangedFiles(VC05Vector<VC05string>& changes);
   virtual M4::File* GetEngineFile(M4::Allocator* alc, const string& path);
 
+  virtual const PlatformPath& GetNormlizedFilePath();
+
   PlatformPath MakePlatformPath(std::string path) const{
     return RealPath/path;
   }
@@ -90,7 +92,7 @@ private:
   int RelativeRequire(lua_State* L, const PathStringArg& ModuleName );
 
   PathString GameFileSystemPath;
-	PlatformPath RealPath;
+	PlatformPath RealPath, NormalizedPath;
 
   DirectoryChangeWatcher* ChangeWatcher; 
 

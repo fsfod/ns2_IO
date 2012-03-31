@@ -6,7 +6,7 @@ extern void LogMessage(const char* msg);
 M4::File* SourceCollection::OpenFile(M4::Allocator* alc, const char* path, bool something){
 
   try{
-    string normpath = NormalizedPath(path);
+    string normpath = NormalizePath(path);
 
     return GetEngineFile(normpath, alc);
   }catch(exception e){
@@ -20,7 +20,7 @@ bool SourceCollection::GetFileExists( const char* path )
 {
 
   try{
-    return FileExists(NormalizedPath(path));
+    return FileExists(NormalizePath(path));
   }catch(exception e){
     LogMessage(e.what());
   }
@@ -31,7 +31,7 @@ bool SourceCollection::GetFileExists( const char* path )
 std::int64_t SourceCollection::GetFileModificationTime( const char* path )
 {
   try{
-    return GetFileModifiedTime(NormalizedPath(path));
+    return GetFileModifiedTime(NormalizePath(path));
   }catch(exception e){
     LogMessage(e.what());
   }
@@ -61,6 +61,19 @@ void SourceCollection::AddSource( ::FileSource* source ){
   }
 
   SourceList.push_back(source);
+}
+
+::FileSource* SourceCollection::FindSourceWithPath(const PlatformPath& path){
+
+  PlatformPath normPath = NormalizePath(path.c_str());
+
+  BOOST_FOREACH(::FileSource* source, SourceList){
+    if(source->GetNormlizedFilePath() == normPath){
+      return source;
+    }
+  }
+
+  return NULL;
 }
 
 bool SourceCollection::RemoveSource( ::FileSource* source ){

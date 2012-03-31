@@ -22,7 +22,7 @@ namespace M4{
     virtual ~Allocator(){}
 
     virtual void* AllocateAligned(size_t size, int alignment) = 0;
-    virtual void Delete(void* data);
+    virtual void Free(void* data);
     virtual void ReallocateAligned(void *data, size_t size, int alignment) = 0;
     virtual size_t GetAllocationSize(void *data) = 0;
   };

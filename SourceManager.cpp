@@ -13,6 +13,8 @@ std::map<PlatformPath::string_type, Archive*> SourceManager::OpenArchives;
 ResourceOverrider* SourceManager::Overrider = NULL;
 SourceCollection* SourceManager::ExtraSources = NULL;
 
+std::map<PlatformPath, DirectoryFileSource*> SourceManager::CreatedFileSources;
+
 extern ResourceOverrider* OverrideSource;
 
 
@@ -108,5 +110,30 @@ bool SourceManager::UnmountFile(const string& path){
 
 void SourceManager::MountSource( ::FileSource* source ){
   ExtraSources->AddSource(source);
+}
+
+void SourceManager::MountSourcePathOnce(::FileSource* source){
+ 
+  auto path = source->GetNormlizedFilePath();
+
+  FileSource* matchingSource = ExtraSources->FindSourceWithPath(path);
+
+  if(matchingSource != NULL)return;// matchingSource;
+
+  ExtraSources->AddSource(source);
+
+  return;
+}
+
+DirectoryFileSource* SourceManager::GetDirectorySourceForPath(const PlatformPath& path){
+
+  auto normPath = NormalizePath(path.c_str());
+
+
+  auto result = CreatedFileSources.find(normPath);
+
+  if(result != CreatedFileSources.end()){
+    return result->second;
+  }
 }
 

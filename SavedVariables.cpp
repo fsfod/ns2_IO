@@ -119,6 +119,8 @@ void SavedVariables::Load(lua_State *L){
 		lua_setfield(L, EnvTable, "Vector");
 		lua_getfield(L, LUA_GLOBALSINDEX, "Angles");
 		lua_setfield(L, EnvTable, "Angles");
+    lua_getfield(L, LUA_GLOBALSINDEX, "Color");
+    lua_setfield(L, EnvTable, "Color");
 
 		lua_pushvalue(L, EnvTable);
 		if (!lua_setfenv(L, -2)){
@@ -410,9 +412,43 @@ bool SavedVariables::IsaWrapper(lua_State *L, int index, const char* type){
 	return Result;
 }
 
-struct VecAngle_UserData{
-  int type;
+const uint32_t ValueIsPointerMarker = 0x10000;
+const uint32_t StripPointerTypeBit = 0xFFFEFFFF;
+
+struct Vector{
   float x, y, z;
+};
+
+
+template<class type> class GameObject{
+
+public:
+  int GetObjectTypeID() const{
+    return (int)(Marker&StripPointerTypeBit);
+  }
+
+  bool IsPointerHolder() const{
+    return (Marker&ValueIsPointerMarker) != 0;
+  }
+
+  type* GetPointer(){
+    return reinterpret_cast<type*>(GetRawPointer());
+  }
+
+  void* GetRawPointer(){
+    return IsPointerHolder() != 0 ? ObjectPointer : &Data;
+  }
+
+public:
+  uint32_t Marker;
+  union{
+    void* ObjectPointer;
+    type Data;
+  };
+};
+
+struct Color{
+  float r,g,b,a;
 };
 
 bool SavedVariables::SerializeCustomType(lua_State *L, int index){
@@ -426,15 +462,20 @@ bool SavedVariables::SerializeCustomType(lua_State *L, int index){
     fmtString = "Vector(%g,%g,%g)";
   }else if(IsaWrapper(L, ObjectIndex, "Angles")){
     fmtString = "Angles(%g,%g,%g)";
+  }else if(IsaWrapper(L, ObjectIndex, "Color")){
+    Color* color = reinterpret_cast<GameObject<Color>*>(lua_touserdata(L, ObjectIndex))->GetPointer();
+
+    fprintf(SavedVariableFile, "Color(%g,%g,%g,%g)", color->r, color->g, color->b, color->a);
+
+    Result = true;
   }
-    
+
   if(fmtString != NULL){
-    VecAngle_UserData* vector = (VecAngle_UserData*)lua_touserdata(L, ObjectIndex);
+    Vector* vector = reinterpret_cast<GameObject<Vector>*>(lua_touserdata(L, ObjectIndex))->GetPointer();
 
 	  fprintf(SavedVariableFile, fmtString, vector->x, vector->y, vector->z);
 
 		Result = true;
-  	lua_pop(L, 3);
   }
 
 	return Result;

@@ -98,6 +98,7 @@ public:
 
   void CreateMountList(const std::string& BasePath, const std::string& path, vector<pair<string, int>>& fileList);
 
+  virtual const PlatformPath& GetNormlizedFilePath();
 private:
 	void AddFilesToDirectorys();
 	SelfType* CreateDirectorysForPath(const std::string& path, std::vector<int>& SlashIndexs);
@@ -115,7 +116,7 @@ private:
 	std::hash_map<std::string, FileEntry> PathToFile;
 	std::hash_map<std::string, SelfType*> PathToDirectory;
 	std::string ArchiveName;
-
+  PlatformPath NormalizedPath;
 
   class ArchiveFile :public M4::File{
     public:

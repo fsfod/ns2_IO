@@ -48,6 +48,8 @@ extern "C" __declspec(dllexport) int luaopen_NS2_IO(lua_State* L){
     def("MountMapArchive", &LuaModule::MountMapArchive),
     def("UnMountMapArchive", &LuaModule::UnMountMapArchive),
     def("MountSource", &SourceManager::MountSource),
+    def("MountSourcePathOnce", &SourceManager::MountSourcePathOnce),
+    
     def("OpenModsFolder", &LuaModule::OpenModsFolder),
     //def("ExtractResourceToPath", &LuaModule::ExtractResource),
 		

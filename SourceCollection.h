@@ -61,6 +61,8 @@ public:
    return 0;
   }
 
+  ::FileSource* FindSourceWithPath(const PlatformPath& source);
+
 private:
   vector<::FileSource*> SourceList;
   vector<VC05string> ChangedFileList;

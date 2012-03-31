@@ -90,7 +90,7 @@ void InplaceNormalizePath(PathString& path){
 	replace(path, '\\', '/');
 }
 
-std::string NormalizedPath(const wchar_t* pathstr){
+std::string NormalizePath(const wchar_t* pathstr){
 	
 	int len = wcslen(pathstr);
 
@@ -118,7 +118,7 @@ std::string NormalizedPath(const wchar_t* pathstr){
 	return path;
 }
 
-string NormalizedPath(const char* s, int len){
+string NormalizePath(const char* s, int len){
 
 	if(s[0]  == '/' || s[0]  == '\\'){
 		s = s+1;

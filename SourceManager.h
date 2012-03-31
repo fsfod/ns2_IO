@@ -17,12 +17,15 @@ class SourceManager{
 public: 
   static void SetupFilesystemMounting();
 
+  static DirectoryFileSource* GetDirectorySourceForPath(const PlatformPath& path);
+
   static Archive* OpenArchive(const PlatformPath& path);
   static void ArchiveClosed(Archive* arch);
 
   static void CloseAllArchives();
 
   static void MountSource(::FileSource* source);
+  static void MountSourcePathOnce(::FileSource* source);
 
   static int UnmountFilesFromSource(::FileSource* source);
   //static void MountFile(const string& path, Archive* source, int index, bool TriggerModifed = false);
@@ -35,6 +38,8 @@ public:
 
 private:
   static std::map<PlatformPath::string_type, Archive*> OpenArchives;
+
+  static std::map<PlatformPath, DirectoryFileSource*> CreatedFileSources;
 
   static std::map<string, int> GroupNameToId;
 
