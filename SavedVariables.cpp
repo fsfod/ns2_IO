@@ -257,9 +257,15 @@ void SavedVariables::Save(lua_State *L){
 		fprintf(SavedVariableFile, "%s = ", VariableName.c_str());
 
 		switch(lua_type(L, -1)){
-			case LUA_TNUMBER:
-				fprintf(SavedVariableFile, "%Lg\n", lua_tonumber(L, -1));
-			break;
+			case LUA_TNUMBER:{
+        double value = lua_tonumber(L, -1);
+
+        if(value == ((int)value)){
+          fprintf(SavedVariableFile,  "%i\n", (int)value);
+        }else{
+          fprintf(SavedVariableFile, "%f\n", value);
+        }
+      }break;
 
 			case LUA_TSTRING:
 				fprintf(SavedVariableFile, "\"%s\"\n", lua_tostring(L, -1));
@@ -311,7 +317,7 @@ void SavedVariables::SaveTable(lua_State *L){
 	
 	IndentString.push_back('\t');
 	
-	int CurrentTableIndex = 0;
+  int CurrentTableIndex = 0;
 
 	while(lua_next(L, -2) != 0){
 
@@ -343,9 +349,15 @@ void SavedVariables::SaveTable(lua_State *L){
 		}
 
 		switch(lua_type(L, -1)){
-			case LUA_TNUMBER:
-				fprintf(SavedVariableFile, "%Lg,\n", lua_tonumber(L, -1));
-			break;
+			case LUA_TNUMBER:{
+        double value = lua_tonumber(L, -1);
+
+        if(value == ((int)value)){
+          fprintf(SavedVariableFile,  "%i,\n", (int)value);
+        }else{
+          fprintf(SavedVariableFile, "%f,\n", value);
+        }
+      }break;
 
 			case LUA_TSTRING:
 				fprintf(SavedVariableFile, "\"%s\",\n", lua_tostring(L, -1));
