@@ -30,7 +30,10 @@ namespace M4{
   class File{
    public:
     virtual uint32_t GetLength() = 0;
-  
+    virtual void SetLength(unsigned __int64 newLength){
+      return;
+    }
+
     //these 2 can't have the same name seems to mess up how the vtable is generated
     virtual void* LockRange(uint32_t start, uint32_t size) = 0;
     virtual void* Lock() = 0;
